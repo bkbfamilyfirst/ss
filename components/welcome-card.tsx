@@ -13,7 +13,7 @@ export function WelcomeCard() {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-2xl font-bold">ND Control Center</h2>
+                <h2 className="text-2xl font-bold">SS Control Center</h2>
                 <Sparkles className="h-5 w-5 text-electric-yellow" />
               </div>
               <p className="mt-1 text-white/90">Monitor and manage your parental control ecosystem</p>

@@ -9,7 +9,7 @@ import BottomNav from "@/components/bottom-nav"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Family First ND Panel",
+  title: "Family First SS Panel",
   description: "Admin control center for parental control ecosystem management",
   generator: 'v0.dev'
 }

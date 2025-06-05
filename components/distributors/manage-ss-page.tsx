@@ -142,8 +142,8 @@ export function ManageSSPage() {
                 <Users className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h2 className="text-2xl font-bold">Manage State Supervisors</h2>
-                <p className="mt-1 text-white/90 text-1xl">Overview of your SS network</p>
+                <h2 className="text-2xl font-bold">Manage Distributor</h2>
+                <p className="mt-1 text-white/90 text-1xl">Overview of your Distributor network</p>
               </div>
             </div>
             {/* Add any optional buttons here if needed */}
@@ -186,7 +186,7 @@ export function ManageSSPage() {
             <div className="flex flex-col items-center p-4 rounded-2xl bg-gradient-to-r from-electric-purple/20 to-electric-blue/20 hover:scale-105 transition-transform duration-300">
               <div className="flex items-center gap-2 mb-1">
                 <Users className="h-5 w-5 text-electric-purple" />
-                <span className="text-sm font-extrabold text-electric-purple">Total SS</span>
+                <span className="text-sm font-extrabold text-electric-purple">Total Distributor</span>
               </div>
               <span className="text-2xl font-extrabold text-electric-purple">
                 {ssData.length}
@@ -284,7 +284,7 @@ export function ManageSSPage() {
                 className="w-full sm:w-auto bg-gradient-to-r from-electric-purple to-electric-blue hover:from-electric-purple/80 hover:to-electric-blue/80"
               >
                 <Plus className="h-4 w-4 mr-2" />
-                Add New SS
+                Add New Distributor
               </Button>
             </div>
           </div>

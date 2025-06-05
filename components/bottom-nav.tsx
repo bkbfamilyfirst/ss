@@ -14,10 +14,10 @@ const navItems = [
     color: "from-electric-purple to-electric-blue",
   },
   {
-    name: "Manage SS",
+    name: "Manage Distributor",
     icon: Network,
-    href: "/distributors",
-    shortName: "ND",
+    href: "/manage-distributor",
+    shortName: "Distributor",
     color: "from-electric-cyan to-electric-purple",
   },
   // {
@@ -62,8 +62,8 @@ export default function BottomNav() {
               href={item.href}
               onClick={() => setActiveItem(item.name)}
               className={`relative flex flex-1 flex-col items-center justify-center rounded-xl p-2 touch-target smooth-transition sm:flex-initial sm:px-3 sm:py-2 ${isActive
-                  ? "text-white scale-105 sm:scale-110"
-                  : "text-gray-600 hover:text-electric-purple dark:text-gray-300 hover:scale-105"
+                ? "text-white scale-105 sm:scale-110"
+                : "text-gray-600 hover:text-electric-purple dark:text-gray-300 hover:scale-105"
                 }`}
             >
               {isActive && (

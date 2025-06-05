@@ -99,7 +99,7 @@ export function AddSSDialog({ open, onOpenChange, onAdd }: AddSSDialogProps) {
             <div className="rounded-full p-2 bg-gradient-to-r from-electric-purple to-electric-blue">
               <span className="text-white text-sm">+</span>
             </div>
-            Add New State Supervisor
+            Add New Distributor
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -198,7 +198,7 @@ export function AddSSDialog({ open, onOpenChange, onAdd }: AddSSDialogProps) {
               type="submit"
               className="flex-1 bg-gradient-to-r from-electric-purple to-electric-blue hover:from-electric-purple/80 hover:to-electric-blue/80"
             >
-              Add State Supervisor
+              Add Distributor
             </Button>
           </div>
         </form>
