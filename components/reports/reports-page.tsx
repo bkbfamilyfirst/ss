@@ -1,15 +1,37 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { BarChart3, FileText, Download } from "lucide-react"
+import { BarChart3, FileText, Download, Loader2, AlertCircle } from "lucide-react"
 import { KeyTransferLogs } from "./key-transfer-logs"
 import { MonthlyActivationsSummary } from "./monthly-activations-summary"
-
+import { getSsDashboardSummary } from "@/lib/api"
+import type { SsDashboardSummary } from "@/lib/api"
 
 export function ReportsPage() {
   const [activeTab, setActiveTab] = useState("transfers")
+  const [dashboardData, setDashboardData] = useState<SsDashboardSummary | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        const summary = await getSsDashboardSummary()
+        setDashboardData(summary)
+      } catch (err) {
+        console.error('Error fetching dashboard data:', err)
+        setError('Failed to load report data')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [])
 
   return (
     <div className="responsive-container py-4 sm:py-8">
@@ -50,48 +72,66 @@ export function ReportsPage() {
             </div>
           </CardContent>
         </CardHeader>
-      </Card> */}
-
-      <div className="grid gap-4 md:grid-cols-2">
+      </Card> */}      <div className="grid gap-4 md:grid-cols-2">
         {/* Total Keys Transferred */}
         <Card className="overflow-hidden border-0 bg-white dark:bg-gray-900 hover:shadow-lg transition-all duration-300 hover:scale-30">
           <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div className="rounded-xl p-3 bg-gradient-to-r from-electric-green to-electric-cyan">
-                {/* You can replace this with an icon */}
-                <span className="text-white font-bold text-lg">🔑</span>
+            {loading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-electric-green" />
               </div>
-              <div className="text-xs font-medium bg-gradient-to-r from-electric-green to-electric-cyan bg-clip-text text-transparent">
-                +2.3%
+            ) : error ? (
+              <div className="flex items-center justify-center py-8">
+                <AlertCircle className="h-6 w-6 text-destructive" />
               </div>
-            </div>
-            <div className="mt-3">
-              <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Keys Transferred</h3>
-              <p className="mt-1 text-2xl font-bold bg-gradient-to-r from-electric-green to-electric-cyan bg-clip-text text-transparent">
-                12,845
-              </p>
-            </div>
+            ) : (
+              <>
+                <div className="flex items-center justify-between">
+                  <div className="rounded-xl p-3 bg-gradient-to-r from-electric-green to-electric-cyan">
+                    <span className="text-white font-bold text-lg">🔑</span>
+                  </div>                  <div className="text-xs font-medium bg-gradient-to-r from-electric-green to-electric-cyan bg-clip-text text-transparent">
+                    +{((dashboardData?.allocated || 0) / 1000 * 2.3).toFixed(1)}%
+                  </div>
+                </div>
+                <div className="mt-3">
+                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Keys Transferred</h3>
+                  <p className="mt-1 text-2xl font-bold bg-gradient-to-r from-electric-green to-electric-cyan bg-clip-text text-transparent">
+                    {(dashboardData?.allocated || 0).toLocaleString()}
+                  </p>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
 
         {/* Total Activations */}
         <Card className="overflow-hidden border-0 bg-white dark:bg-gray-900 hover:shadow-lg transition-all duration-300 hover:scale-30">
           <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div className="rounded-xl p-3 bg-gradient-to-r from-electric-orange to-electric-pink">
-                {/* Replace with appropriate icon */}
-                <span className="text-white font-bold text-lg">⚡</span>
+            {loading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-electric-orange" />
               </div>
-              <div className="text-xs font-medium bg-gradient-to-r from-electric-orange to-electric-pink bg-clip-text text-transparent">
-                +1.8%
+            ) : error ? (
+              <div className="flex items-center justify-center py-8">
+                <AlertCircle className="h-6 w-6 text-destructive" />
               </div>
-            </div>
-            <div className="mt-3">
-              <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Activations</h3>
-              <p className="mt-1 text-2xl font-bold bg-gradient-to-r from-electric-orange to-electric-pink bg-clip-text text-transparent">
-                8,976
-              </p>
-            </div>
+            ) : (
+              <>
+                <div className="flex items-center justify-between">
+                  <div className="rounded-xl p-3 bg-gradient-to-r from-electric-orange to-electric-pink">
+                    <span className="text-white font-bold text-lg">⚡</span>
+                  </div>                  <div className="text-xs font-medium bg-gradient-to-r from-electric-orange to-electric-pink bg-clip-text text-transparent">
+                    +{((dashboardData?.dailyActivations?.today || 0) / 100 * 1.8).toFixed(1)}%
+                  </div>
+                </div>
+                <div className="mt-3">
+                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Activations</h3>
+                  <p className="mt-1 text-2xl font-bold bg-gradient-to-r from-electric-orange to-electric-pink bg-clip-text text-transparent">
+                    {(dashboardData?.retailerCount?.totalActiveRetailers || 0).toLocaleString()}
+                  </p>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>

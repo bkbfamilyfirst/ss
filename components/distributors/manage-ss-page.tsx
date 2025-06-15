@@ -3,133 +3,231 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Users, Plus, Search, UserCheck, UserX, KeyRound } from "lucide-react"
-import { useState } from "react"
+import { Users, Plus, Search, UserCheck, UserX, KeyRound, AlertCircle, Loader2 } from "lucide-react"
+import { useState, useEffect, Key } from "react"
+import { toast } from "sonner"
 import { SSTable } from "./ss-table"
 import { AddSSDialog } from "./add-ss-dialog"
 import { EditSSDialog } from "./edit-ss-dialog"
 import { DeleteSSDialog } from "./delete-ss-dialog"
+import { getDistributorList, getDistributorStats, addDistributor, updateDistributor, deleteDistributor } from "@/lib/api"
+import type { Distributor } from "@/lib/api"
 
 
 export interface StateSupervisor {
-  id: string
+  id: Key | null | undefined
+  _id: string
   name: string
   email: string
   phone: string
-  region: string
-  status: "active" | "blocked"
-  keysAllocated: number
-  keysUsed: number
-  lastActive: string
-  joinedDate: string
+  location: string
+  status: "active" | "inactive"
+  assignedKeys: number
+  usedKeys: number
+  lastActive?: string
+  createdAt: string
+  updatedAt?: string
+  role: string
+  createdBy: string
 }
 
-const initialSSData: StateSupervisor[] = [
-  {
-    id: "ss1",
-    name: "John Smith",
-    email: "john.smith@example.com",
-    phone: "+1 (555) 123-4567",
-    region: "North Region",
-    status: "active",
-    keysAllocated: 1200,
-    keysUsed: 876,
-    lastActive: "2 hours ago",
-    joinedDate: "2023-01-15",
-  },
-  {
-    id: "ss2",
-    name: "Lisa Johnson",
-    email: "lisa.johnson@example.com",
-    phone: "+1 (555) 234-5678",
-    region: "South Region",
-    status: "active",
-    keysAllocated: 950,
-    keysUsed: 782,
-    lastActive: "5 mins ago",
-    joinedDate: "2023-02-20",
-  },
-  {
-    id: "ss3",
-    name: "Mark Williams",
-    email: "mark.williams@example.com",
-    phone: "+1 (555) 345-6789",
-    region: "East Region",
-    status: "blocked",
-    keysAllocated: 800,
-    keysUsed: 523,
-    lastActive: "3 days ago",
-    joinedDate: "2023-03-10",
-  },
-  {
-    id: "ss4",
-    name: "Anna Davis",
-    email: "anna.davis@example.com",
-    phone: "+1 (555) 456-7890",
-    region: "West Region",
-    status: "active",
-    keysAllocated: 1050,
-    keysUsed: 912,
-    lastActive: "1 hour ago",
-    joinedDate: "2023-01-25",
-  },
-  {
-    id: "ss5",
-    name: "Robert Brown",
-    email: "robert.brown@example.com",
-    phone: "+1 (555) 567-8901",
-    region: "Central Region",
-    status: "active",
-    keysAllocated: 750,
-    keysUsed: 487,
-    lastActive: "Just now",
-    joinedDate: "2023-04-05",
-  },
-]
+export type AddStateSupervisorData = Pick<StateSupervisor, 'name' | 'email' | 'phone' | 'location' | 'status' | 'assignedKeys' | 'usedKeys'>;
 
 export function ManageSSPage() {
-  const [ssData, setSSData] = useState<StateSupervisor[]>(initialSSData)
+  const [ssData, setSSData] = useState<StateSupervisor[]>([])
+  const [stats, setStats] = useState({ total: 0, active: 0, inactive: 0, totalKeys: 0 })
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
-  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "blocked">("all")
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all")
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [editingSS, setEditingSS] = useState<StateSupervisor | null>(null)
   const [deletingSS, setDeletingSS] = useState<StateSupervisor | null>(null)
+  const [actionLoading, setActionLoading] = useState(false)
+
+  // Fetch distributors and stats
+  const fetchData = async () => {
+    try {      setLoading(true)
+      setError(null)
+        const [distributors, distributorStats] = await Promise.all([
+        getDistributorList(),
+        getDistributorStats()
+      ])
+      
+      console.log('Raw distributor data from API:', distributors);
+      console.log('First distributor location field:', distributors[0]?.location);
+      console.log('First distributor all fields:', Object.keys(distributors[0] || {}));
+      
+      // Transform API data to match component interface
+      const transformedData: StateSupervisor[] = distributors.map(dist => ({
+        id: dist._id, // Add this line to satisfy the StateSupervisor interface
+        _id: dist._id,
+        name: dist.name,
+        email: dist.email,
+        phone: dist.phone,
+        location: dist.location,
+        status: dist.status as "active" | "inactive",
+        assignedKeys: dist.assignedKeys,
+        usedKeys: dist.usedKeys,
+        lastActive: "Recently", // API doesn't provide this, using placeholder
+        createdAt: dist.createdAt || new Date().toISOString(),
+        updatedAt: dist.updatedAt,
+        role: dist.role,
+        createdBy: dist.createdBy
+      }))
+        console.log('Transformed distributor data:', transformedData);
+      console.log('First transformed location:', transformedData[0]?.location);
+      
+      setSSData(transformedData)
+      setStats(distributorStats)
+    } catch (err) {
+      console.error('Error fetching data:', err)
+      setError('Failed to load distributor data. Please try again.')
+      toast.error('Failed to load distributor data')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchData()
+  }, [])
 
   const filteredSSData = ssData.filter((ss) => {
     const matchesSearch =
       ss.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       ss.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      ss.region.toLowerCase().includes(searchTerm.toLowerCase())
+      ss.location.toLowerCase().includes(searchTerm.toLowerCase())
 
     const matchesStatus = statusFilter === "all" || ss.status === statusFilter
 
     return matchesSearch && matchesStatus
   })
-
-  const handleAddSS = (newSS: Omit<StateSupervisor, "id">) => {
-    const id = `ss${Date.now()}`
-    setSSData([...ssData, { ...newSS, id }])
-    setIsAddDialogOpen(false)
+  const handleAddSS = async (newSS: AddStateSupervisorData) => {
+    try {
+      setActionLoading(true)
+      
+      // Only send the required fields to the API
+      const distributorData = {
+        name: newSS.name,
+        email: newSS.email,
+        phone: newSS.phone,
+        location: newSS.location,
+        status: newSS.status || 'active',
+        assignedKeys: newSS.assignedKeys || 0
+      };
+      
+      console.log('Adding distributor with data:', distributorData);
+      await addDistributor(distributorData);
+      
+      toast.success('Distributor added successfully')
+      setIsAddDialogOpen(false)
+      await fetchData() // Refresh data
+    } catch (err) {
+      console.error('Error adding distributor:', err)
+      toast.error('Failed to add distributor. Please try again.')    } finally {
+      setActionLoading(false)
+    }
   }
 
-  const handleEditSS = (updatedSS: StateSupervisor) => {
-    setSSData(ssData.map((ss) => (ss.id === updatedSS.id ? updatedSS : ss)))
-    setEditingSS(null)
+  const handleEditSS = async (updatedSS: StateSupervisor) => {
+    try {
+      setActionLoading(true)
+      
+      console.log('Editing distributor with full data:', updatedSS);
+        // Send the fields that should be updatable (including email and assignedKeys)
+      const updateData = {
+        name: updatedSS.name,
+        email: updatedSS.email,
+        phone: updatedSS.phone,
+        location: updatedSS.location,
+        status: updatedSS.status,
+        assignedKeys: updatedSS.assignedKeys
+      };
+      
+      console.log('Update data being sent (API format):', updateData);
+      
+      await updateDistributor(updatedSS._id, updateData);
+      
+      toast.success('Distributor updated successfully')
+      setEditingSS(null)
+      await fetchData() // Refresh data
+    } catch (err) {
+      console.error('Error updating distributor:', err)
+      toast.error('Failed to update distributor. Please try again.')
+    } finally {
+      setActionLoading(false)
+    }
   }
 
-  const handleDeleteSS = (id: string) => {
-    setSSData(ssData.filter((ss) => ss.id !== id))
-    setDeletingSS(null)
+  const handleDeleteSS = async (id: string) => {
+    try {
+      setActionLoading(true)
+      await deleteDistributor(id)
+      
+      toast.success('Distributor deleted successfully')
+      setDeletingSS(null)
+      await fetchData() // Refresh data
+    } catch (err) {
+      console.error('Error deleting distributor:', err)
+      toast.error('Failed to delete distributor. Please try again.')
+    } finally {
+      setActionLoading(false)
+    }
   }
 
-  const handleToggleStatus = (id: string) => {
-    setSSData(
-      ssData.map((ss) => (ss.id === id ? { ...ss, status: ss.status === "active" ? "blocked" : "active" } : ss)),
+  const handleToggleStatus = async (id: string) => {
+    try {
+      const distributor = ssData.find(ss => ss._id === id)
+      if (!distributor) return
+      
+      setActionLoading(true)
+      const newStatus = distributor.status === "active" ? "inactive" : "active"
+      
+      await updateDistributor(id, { status: newStatus })
+      
+      toast.success(`Distributor ${newStatus === "active" ? "activated" : "deactivated"} successfully`)
+      await fetchData() // Refresh data
+    } catch (err) {
+      console.error('Error toggling status:', err)
+      toast.error('Failed to update distributor status. Please try again.')
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  const activeCount = stats.active
+  const inactiveCount = stats.inactive
+
+  if (loading) {
+    return (
+      <div className="responsive-container py-4 sm:py-8">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="flex flex-col items-center gap-4">
+            <Loader2 className="h-8 w-8 animate-spin text-electric-purple" />
+            <p className="text-muted-foreground">Loading distributors...</p>
+          </div>
+        </div>
+      </div>
     )
   }
 
-  const activeCount = ssData.filter((ss) => ss.status === "active").length
-  const blockedCount = ssData.filter((ss) => ss.status === "blocked").length
+  if (error) {
+    return (
+      <div className="responsive-container py-4 sm:py-8">
+        <Card className="border-0 bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-800">
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <AlertCircle className="h-12 w-12 text-destructive mb-4" />
+            <h3 className="text-lg font-semibold mb-2">Error Loading Data</h3>
+            <p className="text-muted-foreground text-center mb-4">{error}</p>
+            <Button onClick={fetchData} className="bg-gradient-to-r from-electric-purple to-electric-blue">
+              Try Again
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   return (
     <div className="responsive-container py-4 sm:py-8">
@@ -180,16 +278,14 @@ export function ManageSSPage() {
 
       <Card className="border-0 shadow-md bg-gradient-to-br from-background/30 to-background/10 backdrop-blur-lg">
         <CardContent>
-          <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-4">
-
-            {/* Total SS */}
+          <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-4">            {/* Total SS */}
             <div className="flex flex-col items-center p-4 rounded-2xl bg-gradient-to-r from-electric-purple/20 to-electric-blue/20 hover:scale-105 transition-transform duration-300">
               <div className="flex items-center gap-2 mb-1">
                 <Users className="h-5 w-5 text-electric-purple" />
                 <span className="text-sm font-extrabold text-electric-purple">Total Distributor</span>
               </div>
               <span className="text-2xl font-extrabold text-electric-purple">
-                {ssData.length}
+                {stats.total}
               </span>
             </div>
 
@@ -204,14 +300,14 @@ export function ManageSSPage() {
               </span>
             </div>
 
-            {/* Blocked */}
+            {/* Inactive */}
             <div className="flex flex-col items-center p-4 rounded-2xl bg-gradient-to-r from-electric-orange/20 to-electric-pink/20 hover:scale-105 transition-transform duration-300">
               <div className="flex items-center gap-2 mb-1">
                 <UserX className="h-5 w-5 text-electric-orange" />
                 <span className="text-sm font-extrabold text-electric-orange">Inactive</span>
               </div>
               <span className="text-2xl font-extrabold text-electric-orange">
-                {blockedCount}
+                {inactiveCount}
               </span>
             </div>
 
@@ -222,7 +318,7 @@ export function ManageSSPage() {
                 <span className="text-sm font-extrabold text-electric-yellow">Total Keys</span>
               </div>
               <span className="text-2xl font-extrabold text-electric-yellow">
-                {ssData.reduce((sum, ss) => sum + ss.keysAllocated, 0).toLocaleString()}
+                {stats.totalKeys.toLocaleString()}
               </span>
             </div>
 
@@ -248,15 +344,14 @@ export function ManageSSPage() {
                 />
               </div>
 
-              {/* Filter buttons */}
-              <div className="flex flex-wrap gap-2">
+              {/* Filter buttons */}              <div className="flex flex-wrap gap-2">
                 <Button
                   variant={statusFilter === "all" ? "default" : "outline"}
                   size="sm"
                   onClick={() => setStatusFilter("all")}
                   className={statusFilter === "all" ? "bg-gradient-to-r from-electric-purple to-electric-blue" : ""}
                 >
-                  All ({ssData.length})
+                  All ({stats.total})
                 </Button>
                 <Button
                   variant={statusFilter === "active" ? "default" : "outline"}
@@ -267,12 +362,12 @@ export function ManageSSPage() {
                   Active ({activeCount})
                 </Button>
                 <Button
-                  variant={statusFilter === "blocked" ? "default" : "outline"}
+                  variant={statusFilter === "inactive" ? "default" : "outline"}
                   size="sm"
-                  onClick={() => setStatusFilter("blocked")}
-                  className={statusFilter === "blocked" ? "bg-gradient-to-r from-electric-orange to-electric-pink" : ""}
+                  onClick={() => setStatusFilter("inactive")}
+                  className={statusFilter === "inactive" ? "bg-gradient-to-r from-electric-orange to-electric-pink" : ""}
                 >
-                  Inactive ({blockedCount})
+                  Inactive ({inactiveCount})
                 </Button>
               </div>
             </div>
@@ -301,7 +396,7 @@ export function ManageSSPage() {
       />
 
       {/* Dialogs */}
-      <AddSSDialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen} onAdd={handleAddSS} />
+      <AddSSDialog open={isAddDialogOpen} onOpenChangeAction={setIsAddDialogOpen} onAddAction={handleAddSS} />
 
       {editingSS && (
         <EditSSDialog

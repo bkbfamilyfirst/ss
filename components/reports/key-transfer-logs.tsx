@@ -1,15 +1,18 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { CalendarIcon, Download, Filter, Search, ArrowUp, ArrowDown, Wallet } from "lucide-react"
+import { CalendarIcon, Download, Filter, Search, ArrowUp, ArrowDown, Wallet, Loader2, AlertCircle } from "lucide-react"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { format } from "date-fns"
+import { toast } from "sonner"
+import { getSsKeyTransferLogs } from "@/lib/api"
+import type { KeyTransferLog } from "@/lib/api"
 
 interface TransferLog {
   id: string
@@ -126,24 +129,97 @@ const transferLogs: TransferLog[] = [
 ]
 
 export function KeyTransferLogs() {
+  const [transferLogs, setTransferLogs] = useState<KeyTransferLog[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0 })
   const [searchTerm, setSearchTerm] = useState("")
   const [typeFilter, setTypeFilter] = useState<"all" | "sent" | "received">("all")
   const [statusFilter, setStatusFilter] = useState<"all" | "completed" | "pending" | "failed">("all")
   const [date, setDate] = useState<Date | undefined>(undefined)
 
-  const filteredLogs = transferLogs.filter((log) => {
-    const matchesSearch =
-      log.from.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      log.to.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      log.id.toLowerCase().includes(searchTerm.toLowerCase())
+  // Fetch transfer logs
+  const fetchTransferLogs = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      
+      const startDate = date ? format(date, "yyyy-MM-dd") : undefined
+      const endDate = startDate
+      
+      const response = await getSsKeyTransferLogs(
+        pagination.page,
+        pagination.limit,
+        startDate,
+        endDate,
+        statusFilter === "all" ? undefined : statusFilter,
+        typeFilter === "all" ? undefined : typeFilter,
+        searchTerm || undefined
+      )
+      
+      setTransferLogs(response.logs)
+      setPagination(prev => ({ ...prev, total: response.total }))
+    } catch (err) {
+      console.error('Error fetching transfer logs:', err)
+      setError('Failed to load transfer logs. Please try again.')
+      toast.error('Failed to load transfer logs')
+    } finally {
+      setLoading(false)
+    }
+  }
 
-    const matchesType = typeFilter === "all" || log.type === typeFilter
-    const matchesStatus = statusFilter === "all" || log.status === statusFilter
-    const matchesDate = !date || log.date === format(date, "yyyy-MM-dd")
+  useEffect(() => {
+    fetchTransferLogs()
+  }, [pagination.page, pagination.limit, typeFilter, statusFilter, date])
 
-    return matchesSearch && matchesType && matchesStatus && matchesDate
-  })
+  // Debounced search
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (pagination.page === 1) {
+        fetchTransferLogs()
+      } else {
+        setPagination(prev => ({ ...prev, page: 1 }))
+      }
+    }, 500)
 
+    return () => clearTimeout(timeout)
+  }, [searchTerm])
+
+  const filteredLogs = transferLogs
+  const getLogType = (log: KeyTransferLog): "sent" | "received" => {
+    // Determine if this is sent or received based on the log type or direction
+    return log.type === "transfer_out" ? "sent" : "received"
+  }
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="flex flex-col items-center gap-4">
+            <Loader2 className="h-8 w-8 animate-spin text-electric-purple" />
+            <p className="text-muted-foreground">Loading transfer logs...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <Card className="border-0 bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-800">
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <AlertCircle className="h-12 w-12 text-destructive mb-4" />
+            <h3 className="text-lg font-semibold mb-2">Error Loading Transfer Logs</h3>
+            <p className="text-muted-foreground text-center mb-4">{error}</p>
+            <Button onClick={fetchTransferLogs} className="bg-gradient-to-r from-electric-purple to-electric-blue">
+              Try Again
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
   const getStatusBadgeClass = (status: string) => {
     switch (status) {
       case "completed":
@@ -154,6 +230,14 @@ export function KeyTransferLogs() {
         return "bg-gradient-to-r from-electric-orange to-electric-pink border-0"
       default:
         return ""
+    }
+  }
+
+  const handleExport = async () => {
+    try {
+      toast.success('Export feature will be implemented soon')
+    } catch (err) {
+      toast.error('Failed to export logs')
     }
   }
 
@@ -213,15 +297,13 @@ export function KeyTransferLogs() {
                 </Popover>
               </div>
             </div>
-            <Button variant="outline" size="sm" className="ml-auto">
+            <Button variant="outline" size="sm" className="ml-auto" onClick={handleExport}>
               <Download className="h-4 w-4 mr-2" />
               Export
             </Button>
           </div>
         </CardContent>
-      </Card>
-
-      {/* Mobile Card Layout */}
+      </Card>      {/* Mobile Card Layout */}
       <div className="block lg:hidden space-y-4">
         {filteredLogs.length === 0 ? (
           <Card className="border-0 bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-800">
@@ -233,64 +315,66 @@ export function KeyTransferLogs() {
             </CardContent>
           </Card>
         ) : (
-          filteredLogs.map((log) => (
-            <Card
-              key={log.id}
-              className="border-0 bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-800 hover:shadow-xl transition-all duration-300"
-            >
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <Badge
-                      variant={log.type === "received" ? "default" : "outline"}
-                      className={
-                        log.type === "received"
-                          ? "bg-gradient-to-r from-electric-green to-electric-cyan border-0"
-                          : "border-electric-orange text-electric-orange"
-                      }
-                    >
-                      {log.type === "received" ? (
-                        <ArrowDown className="h-3 w-3 mr-1" />
-                      ) : (
-                        <ArrowUp className="h-3 w-3 mr-1" />
-                      )}
-                      {log.type.charAt(0).toUpperCase() + log.type.slice(1)}
-                    </Badge>
-                    <span className="text-xs text-muted-foreground">{new Date(log.date).toLocaleDateString()}</span>
-                  </div>
-                  <Badge variant="outline" className={getStatusBadgeClass(log.status)}>
-                    {log.status.charAt(0).toUpperCase() + log.status.slice(1)}
-                  </Badge>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">ID:</span>
-                    <span className="font-medium">{log.id}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Quantity:</span>
-                    <span className="font-medium">{log.quantity.toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">From:</span>
-                    <span className="text-sm truncate max-w-[150px]">{log.from}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">To:</span>
-                    <span className="text-sm truncate max-w-[150px]">{log.to}</span>
-                  </div>
-                  <div className="flex justify-between items-center pt-2 border-t">
-                    <span className="text-sm text-muted-foreground">Balance:</span>
-                    <div className="flex items-center gap-1">
-                      <Wallet className="h-4 w-4 text-electric-blue" />
-                      <span className="font-medium">{log.balance.toLocaleString()}</span>
+          filteredLogs.map((log) => {
+            const logType = getLogType(log)
+            return (
+              <Card
+                key={log.transferId}
+                className="border-0 bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-800 hover:shadow-xl transition-all duration-300"
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <Badge
+                        variant={logType === "received" ? "default" : "outline"}
+                        className={
+                          logType === "received"
+                            ? "bg-gradient-to-r from-electric-green to-electric-cyan border-0"
+                            : "border-electric-orange text-electric-orange"
+                        }
+                      >
+                        {logType === "received" ? (
+                          <ArrowDown className="h-3 w-3 mr-1" />
+                        ) : (
+                          <ArrowUp className="h-3 w-3 mr-1" />
+                        )}
+                        {logType.charAt(0).toUpperCase() + logType.slice(1)}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">{new Date(log.timestamp).toLocaleDateString()}</span>
                     </div>
+                    <Badge variant="outline" className={getStatusBadgeClass(log.status)}>
+                      {log.status.charAt(0).toUpperCase() + log.status.slice(1)}
+                    </Badge>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))
+
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">ID:</span>
+                      <span className="font-medium">{log.transferId}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Quantity:</span>
+                      <span className="font-medium">{log.count.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">From:</span>
+                      <span className="text-sm truncate max-w-[150px]">{log.from?.name || "N/A"}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">To:</span>
+                      <span className="text-sm truncate max-w-[150px]">{log.to?.name || "N/A"}</span>
+                    </div>
+                    {log.notes && (
+                      <div className="flex justify-between items-center pt-2 border-t">
+                        <span className="text-sm text-muted-foreground">Notes:</span>
+                        <span className="text-sm truncate max-w-[150px]">{log.notes}</span>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )
+          })
         )}
       </div>
 
@@ -305,8 +389,7 @@ export function KeyTransferLogs() {
               </div>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
+            <div className="overflow-x-auto">              <table className="w-full">
                 <thead>
                   <tr className="border-b bg-muted/50">
                     <th className="px-4 py-3 text-left font-medium">ID</th>
@@ -315,54 +398,74 @@ export function KeyTransferLogs() {
                     <th className="px-4 py-3 text-left font-medium">Quantity</th>
                     <th className="px-4 py-3 text-left font-medium">From</th>
                     <th className="px-4 py-3 text-left font-medium">To</th>
-                    <th className="px-4 py-3 text-left font-medium">Balance</th>
                     <th className="px-4 py-3 text-left font-medium">Status</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredLogs.map((log) => (
-                    <tr key={log.id} className="border-b hover:bg-muted/30 transition-colors">
-                      <td className="px-4 py-3 font-medium">{log.id}</td>
-                      <td className="px-4 py-3">{new Date(log.date).toLocaleDateString()}</td>
-                      <td className="px-4 py-3">
-                        <Badge
-                          variant={log.type === "received" ? "default" : "outline"}
-                          className={
-                            log.type === "received"
-                              ? "bg-gradient-to-r from-electric-green to-electric-cyan border-0"
-                              : "border-electric-orange text-electric-orange"
-                          }
-                        >
-                          {log.type === "received" ? (
-                            <ArrowDown className="h-3 w-3 mr-1" />
-                          ) : (
-                            <ArrowUp className="h-3 w-3 mr-1" />
-                          )}
-                          {log.type.charAt(0).toUpperCase() + log.type.slice(1)}
-                        </Badge>
-                      </td>
-                      <td className="px-4 py-3 font-medium">{log.quantity.toLocaleString()}</td>
-                      <td className="px-4 py-3">{log.from}</td>
-                      <td className="px-4 py-3">{log.to}</td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-1">
-                          <Wallet className="h-4 w-4 text-electric-blue" />
-                          <span className="font-medium">{log.balance.toLocaleString()}</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <Badge variant="outline" className={getStatusBadgeClass(log.status)}>
-                          {log.status.charAt(0).toUpperCase() + log.status.slice(1)}
-                        </Badge>
-                      </td>
-                    </tr>
-                  ))}
+                  {filteredLogs.map((log) => {
+                    const logType = getLogType(log)
+                    return (
+                      <tr key={log.transferId} className="border-b hover:bg-muted/30 transition-colors">
+                        <td className="px-4 py-3 font-medium">{log.transferId}</td>
+                        <td className="px-4 py-3">{new Date(log.timestamp).toLocaleDateString()}</td>
+                        <td className="px-4 py-3">
+                          <Badge
+                            variant={logType === "received" ? "default" : "outline"}
+                            className={
+                              logType === "received"
+                                ? "bg-gradient-to-r from-electric-green to-electric-cyan border-0"
+                                : "border-electric-orange text-electric-orange"
+                            }
+                          >
+                            {logType === "received" ? (
+                              <ArrowDown className="h-3 w-3 mr-1" />
+                            ) : (
+                              <ArrowUp className="h-3 w-3 mr-1" />
+                            )}
+                            {logType.charAt(0).toUpperCase() + logType.slice(1)}
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-3 font-medium">{log.count.toLocaleString()}</td>
+                        <td className="px-4 py-3">{log.from?.name || "N/A"}</td>
+                        <td className="px-4 py-3">{log.to?.name || "N/A"}</td>
+                        <td className="px-4 py-3">
+                          <Badge variant="outline" className={getStatusBadgeClass(log.status)}>
+                            {log.status.charAt(0).toUpperCase() + log.status.slice(1)}
+                          </Badge>
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
-            </div>
-          )}
+            </div>          )}
         </CardContent>
       </Card>
+
+      {/* Pagination */}
+      {pagination.total > pagination.limit && (
+        <div className="flex justify-center items-center gap-4 pt-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPagination(prev => ({ ...prev, page: Math.max(prev.page - 1, 1) }))}
+            disabled={pagination.page === 1}
+          >
+            Previous
+          </Button>
+          <div className="text-sm text-muted-foreground">
+            Page {pagination.page} of {Math.ceil(pagination.total / pagination.limit)}
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPagination(prev => ({ ...prev, page: Math.min(prev.page + 1, Math.ceil(pagination.total / pagination.limit)) }))}
+            disabled={pagination.page >= Math.ceil(pagination.total / pagination.limit)}
+          >
+            Next
+          </Button>
+        </div>
+      )}
     </div>
   )
 }

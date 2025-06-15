@@ -30,6 +30,9 @@ interface SSTableProps {
 export function SSTable({ data, onEdit, onDelete, onToggleStatus, perPage = 5 }: SSTableProps) {
   const [currentPage, setCurrentPage] = useState(1)
 
+  console.log('SSTable received data:', data);
+  console.log('First item location:', data[0]?.location);
+
   const totalPages = Math.ceil(data.length / perPage)
 
   const paginatedData = useMemo(() => {
@@ -73,8 +76,7 @@ export function SSTable({ data, onEdit, onDelete, onToggleStatus, perPage = 5 }:
                         .map((n) => n[0])
                         .join("")}
                     </AvatarFallback>
-                  </Avatar>
-                  <div>
+                  </Avatar>                  <div>
                     <div className="font-semibold text-lg">{ss.name}</div>
                     <Badge
                       variant={ss.status === "active" ? "default" : "destructive"}
@@ -89,7 +91,7 @@ export function SSTable({ data, onEdit, onDelete, onToggleStatus, perPage = 5 }:
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Switch checked={ss.status === "active"} onCheckedChange={() => onToggleStatus(ss.id)} />
+                  <Switch checked={ss.status === "active"} onCheckedChange={() => onToggleStatus(ss._id)} />
                 </div>
               </div>
 
@@ -101,20 +103,21 @@ export function SSTable({ data, onEdit, onDelete, onToggleStatus, perPage = 5 }:
                 <div className="flex items-center gap-2">
                   <Phone className="h-4 w-4 text-electric-green" />
                   <span>{ss.phone}</span>
-                </div>
-                <div className="flex items-center gap-2">
+                </div>                <div className="flex items-center gap-2">
                   <MapPin className="h-4 w-4 text-electric-orange" />
-                  <span>{ss.region}</span>
+                  <span className={ss.location === 'Location not set' ? 'text-muted-foreground italic' : ''}>
+                    {ss.location || 'Location not set'}
+                  </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Key className="h-4 w-4 text-electric-purple" />
                   <span>
-                    {ss.keysUsed.toLocaleString()} / {ss.keysAllocated.toLocaleString()} keys
+                    {ss.usedKeys.toLocaleString()} / {ss.assignedKeys.toLocaleString()} keys
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Clock className="h-4 w-4 text-electric-cyan" />
-                  <span>Last active: {ss.lastActive}</span>
+                  <span>Last active: {ss.lastActive || "Recently"}</span>
                 </div>
               </div>
 
@@ -147,16 +150,15 @@ export function SSTable({ data, onEdit, onDelete, onToggleStatus, perPage = 5 }:
                 <tr className="border-b bg-muted/50">
                   <th className="px-6 py-4 text-left font-medium">State Supervisor</th>
                   <th className="px-6 py-4 text-left font-medium">Contact</th>
-                  <th className="px-6 py-4 text-left font-medium">Region</th>
+                  <th className="px-6 py-4 text-left font-medium">Location</th>
                   <th className="px-6 py-4 text-left font-medium">Keys Usage</th>
                   <th className="px-6 py-4 text-left font-medium">Status</th>
                   <th className="px-6 py-4 text-left font-medium">Last Active</th>
-                  <th className="px-6 py-4 text-left font-medium">Actions</th>
-                </tr>
+                  <th className="px-6 py-4 text-left font-medium">Actions</th>                </tr>
               </thead>
               <tbody>
                 {paginatedData.map((ss) => (
-                  <tr key={ss.id} className="border-b hover:bg-muted/30 transition-colors">
+                  <tr key={ss._id} className="border-b hover:bg-muted/30 transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <Avatar className="h-10 w-10">
@@ -171,7 +173,7 @@ export function SSTable({ data, onEdit, onDelete, onToggleStatus, perPage = 5 }:
                         <div>
                           <div className="font-medium">{ss.name}</div>
                           <div className="text-sm text-muted-foreground">
-                            Joined {new Date(ss.joinedDate).toLocaleDateString()}
+                            Joined {new Date(ss.createdAt).toLocaleDateString()}
                           </div>
                         </div>
                       </div>
@@ -187,29 +189,30 @@ export function SSTable({ data, onEdit, onDelete, onToggleStatus, perPage = 5 }:
                           <span>{ss.phone}</span>
                         </div>
                       </div>
-                    </td>
-                    <td className="px-6 py-4">
+                    </td>                    <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         <MapPin className="h-4 w-4 text-electric-orange" />
-                        <span>{ss.region}</span>
+                        <span className={ss.location === 'Location not set' ? 'text-muted-foreground italic' : ''}>
+                          {ss.location || 'Location not set'}
+                        </span>
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="space-y-1">
                         <div className="text-sm font-medium">
-                          {ss.keysUsed.toLocaleString()} / {ss.keysAllocated.toLocaleString()}
+                          {ss.usedKeys.toLocaleString()} / {ss.assignedKeys.toLocaleString()}
                         </div>
                         <div className="w-full bg-gray-200 rounded-full h-2">
                           <div
                             className="bg-gradient-to-r from-electric-blue to-electric-purple h-2 rounded-full"
-                            style={{ width: `${(ss.keysUsed / ss.keysAllocated) * 100}%` }}
+                            style={{ width: `${ss.assignedKeys > 0 ? (ss.usedKeys / ss.assignedKeys) * 100 : 0}%` }}
                           ></div>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
-                        <Switch checked={ss.status === "active"} onCheckedChange={() => onToggleStatus(ss.id)} />
+                        <Switch checked={ss.status === "active"} onCheckedChange={() => onToggleStatus(ss._id)} />
                         <Badge
                           variant={ss.status === "active" ? "default" : "destructive"}
                           className={
@@ -225,7 +228,7 @@ export function SSTable({ data, onEdit, onDelete, onToggleStatus, perPage = 5 }:
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2 text-sm">
                         <Clock className="h-4 w-4 text-electric-cyan" />
-                        <span>{ss.lastActive}</span>
+                        <span>{ss.lastActive || "Recently"}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4">

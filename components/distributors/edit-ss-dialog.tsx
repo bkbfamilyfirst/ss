@@ -22,10 +22,10 @@ export function EditSSDialog({ open, onOpenChange, ss, onEdit }: EditSSDialogPro
     name: "",
     email: "",
     phone: "",
-    region: "",
-    status: "active" as "active" | "blocked",
-    keysAllocated: 0,
-    keysUsed: 0,
+    location: "",
+    status: "active" as "active" | "inactive",
+    assignedKeys: 0,
+    usedKeys: 0,
   })
 
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -33,13 +33,13 @@ export function EditSSDialog({ open, onOpenChange, ss, onEdit }: EditSSDialogPro
   useEffect(() => {
     if (ss) {
       setFormData({
-        name: ss.name,
-        email: ss.email,
-        phone: ss.phone,
-        region: ss.region,
-        status: ss.status,
-        keysAllocated: ss.keysAllocated,
-        keysUsed: ss.keysUsed,
+        name: ss.name || "",
+        email: ss.email || "",
+        phone: ss.phone || "",
+        location: ss.location || "",
+        status: ss.status || "active",
+        assignedKeys: ss.assignedKeys || 0,
+        usedKeys: ss.usedKeys || 0,
       })
     }
   }, [ss])
@@ -47,40 +47,39 @@ export function EditSSDialog({ open, onOpenChange, ss, onEdit }: EditSSDialogPro
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
 
-    if (!formData.name.trim()) {
+    if (!formData.name?.trim()) {
       newErrors.name = "Name is required"
     }
 
-    if (!formData.email.trim()) {
+    if (!formData.email?.trim()) {
       newErrors.email = "Email is required"
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = "Email is invalid"
     }
 
-    if (!formData.phone.trim()) {
+    if (!formData.phone?.trim()) {
       newErrors.phone = "Phone is required"
     }
 
-    if (!formData.region.trim()) {
-      newErrors.region = "Region is required"
+    if (!formData.location?.trim()) {
+      newErrors.location = "Location is required"
     }
 
-    if (formData.keysAllocated < 0) {
-      newErrors.keysAllocated = "Keys allocated must be 0 or greater"
+    if (formData.assignedKeys < 0) {
+      newErrors.assignedKeys = "Keys allocated must be 0 or greater"
     }
 
-    if (formData.keysUsed < 0) {
-      newErrors.keysUsed = "Keys used must be 0 or greater"
+    if (formData.usedKeys < 0) {
+      newErrors.usedKeys = "Keys used must be 0 or greater"
     }
 
-    if (formData.keysUsed > formData.keysAllocated) {
-      newErrors.keysUsed = "Keys used cannot exceed keys allocated"
+    if (formData.usedKeys > formData.assignedKeys) {
+      newErrors.usedKeys = "Keys used cannot exceed keys allocated"
     }
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -88,10 +87,16 @@ export function EditSSDialog({ open, onOpenChange, ss, onEdit }: EditSSDialogPro
       return
     }
 
-    onEdit({
+    console.log('Form data before submitting:', formData);
+    
+    const updatedSS = {
       ...ss,
       ...formData,
-    })
+    };
+    
+    console.log('Updated SS data being sent:', updatedSS);
+
+    onEdit(updatedSS)
 
     setErrors({})
   }
@@ -152,12 +157,11 @@ export function EditSSDialog({ open, onOpenChange, ss, onEdit }: EditSSDialogPro
                 className={errors.phone ? "border-red-500" : ""}
               />
               {errors.phone && <p className="text-sm text-red-500">{errors.phone}</p>}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-region">Region *</Label>
-              <Select value={formData.region} onValueChange={(value) => handleInputChange("region", value)}>
-                <SelectTrigger className={errors.region ? "border-red-500" : ""}>
-                  <SelectValue placeholder="Select region" />
+            </div>            <div className="space-y-2">
+              <Label htmlFor="edit-location">Location *</Label>
+              <Select value={formData.location} onValueChange={(value) => handleInputChange("location", value)}>
+                <SelectTrigger className={errors.location ? "border-red-500" : ""}>
+                  <SelectValue placeholder="Select location" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="North Region">North Region</SelectItem>
@@ -167,23 +171,22 @@ export function EditSSDialog({ open, onOpenChange, ss, onEdit }: EditSSDialogPro
                   <SelectItem value="Central Region">Central Region</SelectItem>
                 </SelectContent>
               </Select>
-              {errors.region && <p className="text-sm text-red-500">{errors.region}</p>}
+              {errors.location && <p className="text-sm text-red-500">{errors.location}</p>}
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="edit-status">Status</Label>
-              <Select
+              <Label htmlFor="edit-status">Status</Label>              <Select
                 value={formData.status}
-                onValueChange={(value: "active" | "blocked") => handleInputChange("status", value)}
+                onValueChange={(value: "active" | "inactive") => handleInputChange("status", value)}
               >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="blocked">Blocked</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
                 </SelectContent>
               </Select>
             </div>

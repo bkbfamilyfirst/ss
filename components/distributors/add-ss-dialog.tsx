@@ -8,26 +8,28 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useState } from "react"
-import type { StateSupervisor } from "./manage-ss-page"
+import { Loader2 } from "lucide-react"
+import type { StateSupervisor, AddStateSupervisorData } from "./manage-ss-page"
 
 interface AddSSDialogProps {
   open: boolean
-  onOpenChange: (open: boolean) => void
-  onAdd: (ss: Omit<StateSupervisor, "id">) => void
+  onOpenChangeAction: (open: boolean) => void
+  onAddAction: (ss: AddStateSupervisorData) => Promise<void>
 }
 
-export function AddSSDialog({ open, onOpenChange, onAdd }: AddSSDialogProps) {
+export function AddSSDialog({ open, onOpenChangeAction, onAddAction }: AddSSDialogProps) {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     phone: "",
-    region: "",
-    status: "active" as "active" | "blocked",
-    keysAllocated: 0,
-    keysUsed: 0,
+    location: "",
+    status: "active" as "active" | "inactive",
+    assignedKeys: 0,
+    usedKeys: 0,
   })
 
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [loading, setLoading] = useState(false)
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
@@ -46,42 +48,51 @@ export function AddSSDialog({ open, onOpenChange, onAdd }: AddSSDialogProps) {
       newErrors.phone = "Phone is required"
     }
 
-    if (!formData.region.trim()) {
-      newErrors.region = "Region is required"
+    if (!formData.location.trim()) {
+      newErrors.location = "Location is required"
     }
 
-    if (formData.keysAllocated < 0) {
-      newErrors.keysAllocated = "Keys allocated must be 0 or greater"
+    if (formData.assignedKeys < 0) {
+      newErrors.assignedKeys = "Keys allocated must be 0 or greater"
     }
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (!validateForm()) {
       return
+    }    try {
+      setLoading(true)
+      await onAddAction({
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        location: formData.location,
+        status: formData.status,
+        assignedKeys: formData.assignedKeys,
+        usedKeys: formData.usedKeys,
+      });
+
+      // Reset form
+      setFormData({
+        name: "",
+        email: "",
+        phone: "",
+        location: "",
+        status: "active",
+        assignedKeys: 0,
+        usedKeys: 0,
+      })
+      setErrors({})
+    } catch (error) {
+      console.error('Error adding distributor:', error)
+    } finally {
+      setLoading(false)
     }
-
-    onAdd({
-      ...formData,
-      lastActive: "Just now",
-      joinedDate: new Date().toISOString().split("T")[0],
-    })
-
-    // Reset form
-    setFormData({
-      name: "",
-      email: "",
-      phone: "",
-      region: "",
-      status: "active",
-      keysAllocated: 0,
-      keysUsed: 0,
-    })
-    setErrors({})
   }
 
   const handleInputChange = (field: string, value: string | number) => {
@@ -92,7 +103,7 @@ export function AddSSDialog({ open, onOpenChange, onAdd }: AddSSDialogProps) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChangeAction}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -140,12 +151,11 @@ export function AddSSDialog({ open, onOpenChange, onAdd }: AddSSDialogProps) {
                 className={errors.phone ? "border-red-500" : ""}
               />
               {errors.phone && <p className="text-sm text-red-500">{errors.phone}</p>}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="region">Region *</Label>
-              <Select value={formData.region} onValueChange={(value) => handleInputChange("region", value)}>
-                <SelectTrigger className={errors.region ? "border-red-500" : ""}>
-                  <SelectValue placeholder="Select region" />
+            </div>            <div className="space-y-2">
+              <Label htmlFor="location">Location *</Label>
+              <Select value={formData.location} onValueChange={(value) => handleInputChange("location", value)}>
+                <SelectTrigger className={errors.location ? "border-red-500" : ""}>
+                  <SelectValue placeholder="Select location" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="North Region">North Region</SelectItem>
@@ -155,50 +165,55 @@ export function AddSSDialog({ open, onOpenChange, onAdd }: AddSSDialogProps) {
                   <SelectItem value="Central Region">Central Region</SelectItem>
                 </SelectContent>
               </Select>
-              {errors.region && <p className="text-sm text-red-500">{errors.region}</p>}
+              {errors.location && <p className="text-sm text-red-500">{errors.location}</p>}
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="status">Initial Status</Label>
-              <Select
+              <Label htmlFor="status">Initial Status</Label>              <Select
                 value={formData.status}
-                onValueChange={(value: "active" | "blocked") => handleInputChange("status", value)}
+                onValueChange={(value: "active" | "inactive") => handleInputChange("status", value)}
               >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="blocked">Blocked</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="keysAllocated">Initial Keys Allocation</Label>
+              <Label htmlFor="assignedKeys">Initial Keys Allocation</Label>
               <Input
-                id="keysAllocated"
+                id="assignedKeys"
                 type="number"
                 min="0"
-                value={formData.keysAllocated}
-                onChange={(e) => handleInputChange("keysAllocated", Number.parseInt(e.target.value) || 0)}
+                value={formData.assignedKeys}
+                onChange={(e) => handleInputChange("assignedKeys", Number.parseInt(e.target.value) || 0)}
                 placeholder="0"
-                className={errors.keysAllocated ? "border-red-500" : ""}
+                className={errors.assignedKeys ? "border-red-500" : ""}
               />
-              {errors.keysAllocated && <p className="text-sm text-red-500">{errors.keysAllocated}</p>}
+              {errors.assignedKeys && <p className="text-sm text-red-500">{errors.assignedKeys}</p>}
             </div>
-          </div>
-
-          <div className="flex gap-3 pt-4">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="flex-1">
+          </div>          <div className="flex gap-3 pt-4">
+            <Button type="button" variant="outline" onClick={() => onOpenChangeAction(false)} className="flex-1" disabled={loading}>
               Cancel
             </Button>
             <Button
               type="submit"
               className="flex-1 bg-gradient-to-r from-electric-purple to-electric-blue hover:from-electric-purple/80 hover:to-electric-blue/80"
+              disabled={loading}
             >
-              Add Distributor
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Adding...
+                </>
+              ) : (
+                "Add Distributor"
+              )}
             </Button>
           </div>
         </form>
