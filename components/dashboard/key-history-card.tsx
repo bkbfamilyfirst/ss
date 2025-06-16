@@ -62,60 +62,20 @@ export function KeyHistoryCard() {
 
     fetchKeyHistory()
   }, [period, tab, page, pageSize])
+
   const getLogType = (log: KeyTransferLog): "sent" | "received" => {
     // For a State Supervisor:
     // - "received" means keys came TO the SS (SS is the recipient)
     // - "sent" means keys went FROM the SS (SS is the sender)
     
-    console.log('Analyzing log:', {
-      from: log.from,
-      to: log.to,
-      type: log.type,
-      count: log.count
-    });
-    
-    // Check by role first
+    // If we have role information, use that to determine perspective
     if (log.to?.role === "SS" || log.to?.role === "state_supervisor") {
       return "received";
     } else if (log.from?.role === "SS" || log.from?.role === "state_supervisor") {
       return "sent";
     }
     
-    // Check by name patterns - if SS is sending to distributors/database
-    if (log.from?.name && (
-      log.from.name.toLowerCase().includes("ss") || 
-      log.from.name.toLowerCase().includes("state") ||
-      log.from.name.toLowerCase().includes("supervisor")
-    )) {
-      return "sent";
-    }
-    
-    // Check if SS is receiving from distributors/database
-    if (log.to?.name && (
-      log.to.name.toLowerCase().includes("ss") || 
-      log.to.name.toLowerCase().includes("state") ||
-      log.to.name.toLowerCase().includes("supervisor")
-    )) {
-      return "received";
-    }
-    
-    // If the transaction is going TO "db" or similar, it's likely sent FROM SS
-    if (log.to?.name && (
-      log.to.name.toLowerCase().includes("db") ||
-      log.to.name.toLowerCase().includes("distributor")
-    )) {
-      return "sent";
-    }
-    
-    // If the transaction is coming FROM "db" or similar, it's likely received BY SS
-    if (log.from?.name && (
-      log.from.name.toLowerCase().includes("db") ||
-      log.from.name.toLowerCase().includes("distributor")
-    )) {
-      return "received";
-    }
-    
-    // Fallback to type field if role/name information is not conclusive
+    // Fallback to type field if role information is not available
     return log.type === "transfer_out" ? "sent" : "received";
   };
 
@@ -270,8 +230,9 @@ export function KeyHistoryCard() {
                           <tr className="bg-muted/50">
                             <th className="px-4 py-3 text-left font-medium">Date</th>
                             <th className="px-4 py-3 text-left font-medium">Type</th>
-                            <th className="px-4 py-3 text-left font-medium">Quantity</th>                            {tabKey !== "received" && <th className="px-4 py-3 text-left font-medium">To</th>}
-                          </tr>                        </thead>
+                            <th className="px-4 py-3 text-left font-medium">Quantity</th>
+                            {tabKey !== "received" && <th className="px-4 py-3 text-left font-medium">To</th>}                          </tr>
+                        </thead>
                         <tbody>
                           {paginatedHistory.map((item, index) => {
                             const logType = getLogType(item)
@@ -292,7 +253,8 @@ export function KeyHistoryCard() {
                                       </>
                                     )}
                                   </div>
-                                </td>                                <td className="px-4 py-3 font-medium">{item.count.toLocaleString()}</td>
+                                </td>
+                                <td className="px-4 py-3 font-medium">{item.count.toLocaleString()}</td>
                                 {tabKey !== "received" && <td className="px-4 py-3">{item.to?.name || "N/A"}</td>}
                               </tr>
                             )

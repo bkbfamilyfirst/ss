@@ -31,8 +31,6 @@ export interface StateSupervisor {
   createdBy: string
 }
 
-export type AddStateSupervisorData = Pick<StateSupervisor, 'name' | 'email' | 'phone' | 'location' | 'status' | 'assignedKeys' | 'usedKeys'>;
-
 export function ManageSSPage() {
   const [ssData, setSSData] = useState<StateSupervisor[]>([])
   const [stats, setStats] = useState({ total: 0, active: 0, inactive: 0, totalKeys: 0 })
@@ -47,16 +45,13 @@ export function ManageSSPage() {
 
   // Fetch distributors and stats
   const fetchData = async () => {
-    try {      setLoading(true)
+    try {
+      setLoading(true)
       setError(null)
-        const [distributors, distributorStats] = await Promise.all([
+      const [distributors, distributorStats] = await Promise.all([
         getDistributorList(),
         getDistributorStats()
       ])
-      
-      console.log('Raw distributor data from API:', distributors);
-      console.log('First distributor location field:', distributors[0]?.location);
-      console.log('First distributor all fields:', Object.keys(distributors[0] || {}));
       
       // Transform API data to match component interface
       const transformedData: StateSupervisor[] = distributors.map(dist => ({
@@ -75,8 +70,6 @@ export function ManageSSPage() {
         role: dist.role,
         createdBy: dist.createdBy
       }))
-        console.log('Transformed distributor data:', transformedData);
-      console.log('First transformed location:', transformedData[0]?.location);
       
       setSSData(transformedData)
       setStats(distributorStats)
@@ -103,29 +96,26 @@ export function ManageSSPage() {
 
     return matchesSearch && matchesStatus
   })
-  const handleAddSS = async (newSS: AddStateSupervisorData) => {
+
+  const handleAddSS = async (newSS: Omit<StateSupervisor, "_id" | "role" | "createdBy" | "createdAt">) => {
     try {
       setActionLoading(true)
-      
-      // Only send the required fields to the API
-      const distributorData = {
+      await addDistributor({
         name: newSS.name,
         email: newSS.email,
         phone: newSS.phone,
         location: newSS.location,
-        status: newSS.status || 'active',
-        assignedKeys: newSS.assignedKeys || 0
-      };
-      
-      console.log('Adding distributor with data:', distributorData);
-      await addDistributor(distributorData);
+        status: newSS.status,
+        assignedKeys: newSS.assignedKeys
+      })
       
       toast.success('Distributor added successfully')
       setIsAddDialogOpen(false)
       await fetchData() // Refresh data
     } catch (err) {
       console.error('Error adding distributor:', err)
-      toast.error('Failed to add distributor. Please try again.')    } finally {
+      toast.error('Failed to add distributor. Please try again.')
+    } finally {
       setActionLoading(false)
     }
   }
@@ -133,21 +123,14 @@ export function ManageSSPage() {
   const handleEditSS = async (updatedSS: StateSupervisor) => {
     try {
       setActionLoading(true)
-      
-      console.log('Editing distributor with full data:', updatedSS);
-        // Send the fields that should be updatable (including email and assignedKeys)
-      const updateData = {
+      await updateDistributor(updatedSS._id, {
         name: updatedSS.name,
         email: updatedSS.email,
         phone: updatedSS.phone,
         location: updatedSS.location,
         status: updatedSS.status,
         assignedKeys: updatedSS.assignedKeys
-      };
-      
-      console.log('Update data being sent (API format):', updateData);
-      
-      await updateDistributor(updatedSS._id, updateData);
+      })
       
       toast.success('Distributor updated successfully')
       setEditingSS(null)

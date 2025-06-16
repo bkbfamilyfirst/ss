@@ -9,12 +9,12 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useState } from "react"
 import { Loader2 } from "lucide-react"
-import type { StateSupervisor, AddStateSupervisorData } from "./manage-ss-page"
+import type { StateSupervisor } from "./manage-ss-page"
 
 interface AddSSDialogProps {
   open: boolean
   onOpenChangeAction: (open: boolean) => void
-  onAddAction: (ss: AddStateSupervisorData) => Promise<void>
+  onAddAction: (ss: Omit<StateSupervisor, "_id" | "role" | "createdBy" | "createdAt">) => Promise<void>
 }
 
 export function AddSSDialog({ open, onOpenChangeAction, onAddAction }: AddSSDialogProps) {
@@ -65,17 +65,16 @@ export function AddSSDialog({ open, onOpenChangeAction, onAddAction }: AddSSDial
 
     if (!validateForm()) {
       return
-    }    try {
+    }
+
+    try {
       setLoading(true)
       await onAddAction({
-        name: formData.name,
-        email: formData.email,
-        phone: formData.phone,
-        location: formData.location,
-        status: formData.status,
-        assignedKeys: formData.assignedKeys,
-        usedKeys: formData.usedKeys,
-      });
+        id: crypto.randomUUID(),
+        ...formData,
+        lastActive: "Just now",
+        updatedAt: new Date().toISOString(),
+      })
 
       // Reset form
       setFormData({

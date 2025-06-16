@@ -166,15 +166,11 @@ export const getSsDashboardSummary = async (): Promise<SsDashboardSummary> => {
 export const getDistributorList = async (): Promise<Distributor[]> => {
   try {
     const response = await api.get('/ss/distributors');
-    console.log('Raw API response for distributors:', response.data);
-    
-    // Handle missing location field - backend doesn't return location yet
+    // Map backend address to frontend location
     const distributors = response.data.map((distributor: any) => ({
       ...distributor,
-      location: distributor.location || distributor.address || 'Location not set',
+      location: distributor.address || distributor.location,
     }));
-    
-    console.log('Processed distributors with location fallback:', distributors);
     return distributors;
   } catch (error) {
     console.error('Error fetching distributor list:', error);
@@ -230,27 +226,19 @@ export const addDistributor = async (distributorData: {
   location: string;
   status?: string;
   assignedKeys?: number;
-}) => {  try {
-    // No need to map location field - backend expects "location" directly
+}) => {
+  try {
+    // Map frontend location to backend address
+    const { location, ...rest } = distributorData;
     const backendData = {
-      name: distributorData.name,
-      email: distributorData.email,
-      phone: distributorData.phone,
-      location: distributorData.location,
-      status: distributorData.status || 'active',
-      assignedKeys: distributorData.assignedKeys || 0
+      ...rest,
+      address: location,
     };
     
-    console.log('Sending request to add distributor:', backendData);
     const response = await api.post('/ss/distributors', backendData);
     return response.data;
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error adding distributor:', error);
-    if (error.response) {
-      console.error('Response data:', error.response.data);
-      console.error('Response status:', error.response.status);
-      console.error('Request data:', distributorData);
-    }
     throw error;
   }
 };
@@ -258,21 +246,20 @@ export const addDistributor = async (distributorData: {
 // PUT /ss/distributors/:id
 export const updateDistributor = async (distributorId: string, updatedData: Partial<Distributor>) => {
   try {
-    // No need to map location field - backend expects "location" directly
-    const backendData = { ...updatedData };
-    
-    console.log('Updating distributor with ID:', distributorId);
-    console.log('Update data being sent:', backendData);
+    // Map frontend location to backend address if location is present
+    let backendData = { ...updatedData };
+    if ('location' in backendData && backendData.location) {
+      const { location, ...rest } = backendData;
+      backendData = {
+        ...rest,
+        address: location,
+      } as any;
+    }
     
     const response = await api.put(`/ss/distributors/${distributorId}`, backendData);
-    console.log('Update response:', response.data);
     return response.data;
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error updating distributor:', error);
-    if (error.response) {
-      console.error('Update error response:', error.response.data);
-      console.error('Update error status:', error.response.status);
-    }
     throw error;
   }
 };
@@ -306,8 +293,12 @@ export const transferKeysToDb = async (dbId: string, keysToTransfer: number) => 
 export const getSsProfile = async (): Promise<SsProfile> => {
   try {
     const response = await api.get('/ss/profile');
-    // No need to map - backend should return location directly
-    return response.data;
+    // Map backend address to frontend location
+    const profile = {
+      ...response.data,
+      location: response.data.address || response.data.location,
+    };
+    return profile;
   } catch (error) {
     console.error('Error fetching SS profile:', error);
     throw error;
@@ -317,8 +308,15 @@ export const getSsProfile = async (): Promise<SsProfile> => {
 // PUT /ss/profile
 export const updateSsProfile = async (updatedData: Partial<SsProfile>) => {
   try {
-    // No need to map - backend expects location directly
-    const backendData = { ...updatedData };
+    // Map frontend location to backend address if location is present
+    let backendData = { ...updatedData };
+    if ('location' in backendData && backendData.location) {
+      const { location, ...rest } = backendData;
+      backendData = {
+        ...rest,
+        address: location,
+      } as any;
+    }
     
     const response = await api.put('/ss/profile', backendData);
     return response.data;

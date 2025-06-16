@@ -30,9 +30,6 @@ interface SSTableProps {
 export function SSTable({ data, onEdit, onDelete, onToggleStatus, perPage = 5 }: SSTableProps) {
   const [currentPage, setCurrentPage] = useState(1)
 
-  console.log('SSTable received data:', data);
-  console.log('First item location:', data[0]?.location);
-
   const totalPages = Math.ceil(data.length / perPage)
 
   const paginatedData = useMemo(() => {
@@ -103,11 +100,10 @@ export function SSTable({ data, onEdit, onDelete, onToggleStatus, perPage = 5 }:
                 <div className="flex items-center gap-2">
                   <Phone className="h-4 w-4 text-electric-green" />
                   <span>{ss.phone}</span>
-                </div>                <div className="flex items-center gap-2">
+                </div>
+                <div className="flex items-center gap-2">
                   <MapPin className="h-4 w-4 text-electric-orange" />
-                  <span className={ss.location === 'Location not set' ? 'text-muted-foreground italic' : ''}>
-                    {ss.location || 'Location not set'}
-                  </span>
+                  <span>{ss.location}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Key className="h-4 w-4 text-electric-purple" />
@@ -146,17 +142,17 @@ export function SSTable({ data, onEdit, onDelete, onToggleStatus, perPage = 5 }:
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead>
-                <tr className="border-b bg-muted/50">
+              <thead>                <tr className="border-b bg-muted/50">
                   <th className="px-6 py-4 text-left font-medium">State Supervisor</th>
                   <th className="px-6 py-4 text-left font-medium">Contact</th>
                   <th className="px-6 py-4 text-left font-medium">Location</th>
                   <th className="px-6 py-4 text-left font-medium">Keys Usage</th>
                   <th className="px-6 py-4 text-left font-medium">Status</th>
                   <th className="px-6 py-4 text-left font-medium">Last Active</th>
-                  <th className="px-6 py-4 text-left font-medium">Actions</th>                </tr>
+                  <th className="px-6 py-4 text-left font-medium">Actions</th>
+                </tr>
               </thead>
-              <tbody>
+              <tbody>                
                 {paginatedData.map((ss) => (
                   <tr key={ss._id} className="border-b hover:bg-muted/30 transition-colors">
                     <td className="px-6 py-4">
@@ -189,12 +185,11 @@ export function SSTable({ data, onEdit, onDelete, onToggleStatus, perPage = 5 }:
                           <span>{ss.phone}</span>
                         </div>
                       </div>
-                    </td>                    <td className="px-6 py-4">
+                    </td>
+                    <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         <MapPin className="h-4 w-4 text-electric-orange" />
-                        <span className={ss.location === 'Location not set' ? 'text-muted-foreground italic' : ''}>
-                          {ss.location || 'Location not set'}
-                        </span>
+                        <span>{ss.location}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4">

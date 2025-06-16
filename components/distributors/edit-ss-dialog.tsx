@@ -80,6 +80,7 @@ export function EditSSDialog({ open, onOpenChange, ss, onEdit }: EditSSDialogPro
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -87,16 +88,10 @@ export function EditSSDialog({ open, onOpenChange, ss, onEdit }: EditSSDialogPro
       return
     }
 
-    console.log('Form data before submitting:', formData);
-    
-    const updatedSS = {
+    onEdit({
       ...ss,
       ...formData,
-    };
-    
-    console.log('Updated SS data being sent:', updatedSS);
-
-    onEdit(updatedSS)
+    })
 
     setErrors({})
   }
