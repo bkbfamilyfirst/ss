@@ -228,17 +228,32 @@ export const addDistributor = async (distributorData: {
   assignedKeys?: number;
 }) => {
   try {
-    // Map frontend location to backend address
-    const { location, ...rest } = distributorData;
+    // Backend expects 'location' and maps it to 'address' internally
     const backendData = {
-      ...rest,
-      address: location,
+      name: distributorData.name,
+      email: distributorData.email,
+      phone: distributorData.phone,
+      location: distributorData.location, // Backend will map this to address
+      status: distributorData.status || 'active',
+      assignedKeys: distributorData.assignedKeys || 0
     };
     
     const response = await api.post('/ss/distributors', backendData);
     return response.data;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error adding distributor:', error);
+    console.error('Full error details:', {
+      message: error.message,
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      requestData: distributorData
+    });
+    if (error.response) {
+      console.error('Response data:', error.response.data);
+      console.error('Response status:', error.response.status);
+      console.error('Request data that was sent:', distributorData);
+    }
     throw error;
   }
 };
@@ -246,20 +261,17 @@ export const addDistributor = async (distributorData: {
 // PUT /ss/distributors/:id
 export const updateDistributor = async (distributorId: string, updatedData: Partial<Distributor>) => {
   try {
-    // Map frontend location to backend address if location is present
-    let backendData = { ...updatedData };
-    if ('location' in backendData && backendData.location) {
-      const { location, ...rest } = backendData;
-      backendData = {
-        ...rest,
-        address: location,
-      } as any;
-    }
+    // Backend expects 'location' and maps it to 'address' internally
+    const backendData = { ...updatedData };
     
     const response = await api.put(`/ss/distributors/${distributorId}`, backendData);
     return response.data;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error updating distributor:', error);
+    if (error.response) {
+      console.error('Update error response:', error.response.data);
+      console.error('Update error status:', error.response.status);
+    }
     throw error;
   }
 };
@@ -293,12 +305,8 @@ export const transferKeysToDb = async (dbId: string, keysToTransfer: number) => 
 export const getSsProfile = async (): Promise<SsProfile> => {
   try {
     const response = await api.get('/ss/profile');
-    // Map backend address to frontend location
-    const profile = {
-      ...response.data,
-      location: response.data.address || response.data.location,
-    };
-    return profile;
+    // Backend now maps address to location, so we can use it directly
+    return response.data;
   } catch (error) {
     console.error('Error fetching SS profile:', error);
     throw error;
@@ -308,15 +316,8 @@ export const getSsProfile = async (): Promise<SsProfile> => {
 // PUT /ss/profile
 export const updateSsProfile = async (updatedData: Partial<SsProfile>) => {
   try {
-    // Map frontend location to backend address if location is present
-    let backendData = { ...updatedData };
-    if ('location' in backendData && backendData.location) {
-      const { location, ...rest } = backendData;
-      backendData = {
-        ...rest,
-        address: location,
-      } as any;
-    }
+    // Backend expects location and maps it to address internally
+    const backendData = { ...updatedData };
     
     const response = await api.put('/ss/profile', backendData);
     return response.data;
