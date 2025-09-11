@@ -40,10 +40,12 @@ export default function SignInPage() {
       return
     }
 
-    if (!/\S+@\S+\.\S+/.test(formData.email)) {
+    // Only validate email format if input looks like an email
+    if (formData.email.includes("@") && !/\S+@\S+\.\S+/.test(formData.email)) {
       setError("Please enter a valid email address")
       return
-    }    try {
+    }
+    try {
       setLoading(true)
       setError(null)
       
@@ -116,18 +118,18 @@ export default function SignInPage() {
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Email Field */}
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-medium">
-                  Email Address
+                <Label htmlFor="identifier" className="text-sm font-medium">
+                  Email / Username / Phone
                 </Label>
                 <Input
-                  id="email"
-                  type="email"
+                  id="identifier"
+                  type="text"
                   value={formData.email}
                   onChange={(e) => handleInputChange("email", e.target.value)}
-                  placeholder="ss@techpreneur.com"
+                  placeholder="Enter email, username, or phone"
                   className="border-electric-purple/30 focus:border-electric-purple focus:ring-electric-purple/20"
                   disabled={loading}
-                  autoComplete="email"
+                  autoComplete="username"
                 />
               </div>
 

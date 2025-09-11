@@ -94,6 +94,8 @@ export interface SsDashboardSummary {
 }
 
 export interface Distributor {
+  password: string;
+  username: string;
   _id: string;
   name: string;
   email: string;
@@ -221,23 +223,26 @@ export const getSsKeyTransferLogs = async (
 // POST /ss/distributors
 export const addDistributor = async (distributorData: {
   name: string;
+  username: string;
   email: string;
   phone: string;
   location: string;
   status?: string;
   assignedKeys?: number;
+  password: string;
 }) => {
   try {
     // Backend expects 'location' and maps it to 'address' internally
     const backendData = {
       name: distributorData.name,
+      username: distributorData.username,
       email: distributorData.email,
       phone: distributorData.phone,
       location: distributorData.location, // Backend will map this to address
       status: distributorData.status || 'active',
-      assignedKeys: distributorData.assignedKeys || 0
+      assignedKeys: distributorData.assignedKeys || 0,
+      password: distributorData.password
     };
-    
     const response = await api.post('/ss/distributors', backendData);
     return response.data;
   } catch (error: any) {
@@ -332,7 +337,8 @@ export const updateSsProfile = async (updatedData: Partial<SsProfile>) => {
 // POST /auth/login
 export const login = async (email: string, password: string) => {
   try {
-    const response = await api.post('/auth/login', { email, password });
+    // Send identifier (email, username, or phone) and password
+    const response = await api.post('/auth/login', { identifier: email, password });
     if (response.data.accessToken) {
       localStorage.setItem('accessToken', response.data.accessToken);
     }

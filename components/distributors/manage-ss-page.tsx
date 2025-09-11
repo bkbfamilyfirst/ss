@@ -12,13 +12,15 @@ import { EditSSDialog } from "./edit-ss-dialog"
 import { DeleteSSDialog } from "./delete-ss-dialog"
 import { getDistributorList, getDistributorStats, addDistributor, updateDistributor, deleteDistributor } from "@/lib/api"
 import type { Distributor } from "@/lib/api"
-
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 export interface StateSupervisor {
   id: Key | null | undefined
   _id: string
   name: string
   email: string
+  username: string
+  password: string
   phone: string
   location: string
   status: "active" | "inactive"
@@ -42,6 +44,8 @@ export function ManageSSPage() {
   const [editingSS, setEditingSS] = useState<StateSupervisor | null>(null)
   const [deletingSS, setDeletingSS] = useState<StateSupervisor | null>(null)
   const [actionLoading, setActionLoading] = useState(false)
+  const [successDialogOpen, setSuccessDialogOpen] = useState(false)
+  const [addedDistributor, setAddedDistributor] = useState<null | Omit<StateSupervisor, "_id" | "role" | "createdBy" | "createdAt">>(null)
 
   // Fetch distributors and stats
   const fetchData = async () => {
@@ -59,6 +63,8 @@ export function ManageSSPage() {
         _id: dist._id,
         name: dist.name,
         email: dist.email,
+        username: dist.username || "", // Add username property, fallback to empty string if missing
+        password: dist.password || "", // Use password from frontend state if available
         phone: dist.phone,
         location: dist.location,
         status: dist.status as "active" | "inactive",
@@ -100,21 +106,40 @@ export function ManageSSPage() {
   const handleAddSS = async (newSS: Omit<StateSupervisor, "_id" | "role" | "createdBy" | "createdAt">) => {
     try {
       setActionLoading(true)
-      await addDistributor({
+      const response = await addDistributor({
         name: newSS.name,
+        username: newSS.username,
         email: newSS.email,
         phone: newSS.phone,
         location: newSS.location,
         status: newSS.status,
-        assignedKeys: newSS.assignedKeys
+        assignedKeys: newSS.assignedKeys,
+        password: newSS.password
       })
-      
-      toast.success('Distributor added successfully')
+      if (response && response.distributor && response.password) {
+        setAddedDistributor({
+          id: response.distributor._id,
+          name: response.distributor.name,
+          username: response.distributor.username,
+          email: response.distributor.email,
+          phone: response.distributor.phone,
+          password: response.password,
+          location: response.distributor.location || "",
+          status: response.distributor.status || "active",
+          assignedKeys: response.distributor.assignedKeys || 0,
+          usedKeys: response.distributor.usedKeys || 0,
+          lastActive: "Recently",
+          updatedAt: response.distributor.updatedAt,
+        });
+        setSuccessDialogOpen(true);
+      }
       setIsAddDialogOpen(false)
-      await fetchData() // Refresh data
+      await fetchData(); // Refresh data
+      return response
     } catch (err) {
       console.error('Error adding distributor:', err)
       toast.error('Failed to add distributor. Please try again.')
+      return undefined
     } finally {
       setActionLoading(false)
     }
@@ -397,6 +422,42 @@ export function ManageSSPage() {
           ss={deletingSS}
           onDelete={handleDeleteSS}
         />
+      )}
+
+      {/* Render Success Dialog in parent */}
+      {successDialogOpen && addedDistributor && (
+        <Dialog open={successDialogOpen} onOpenChange={setSuccessDialogOpen}>
+          <DialogContent className="sm:max-w-[400px] px-6 py-6">
+            <DialogHeader>
+              <DialogTitle className="text-green-600">Distributor Added Successfully</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-2">
+              <div><strong>Name:</strong> {addedDistributor.name}</div>
+              <div><strong>Username:</strong> {addedDistributor.username}</div>
+              <div><strong>Email:</strong> {addedDistributor.email}</div>
+              <div><strong>Phone:</strong> {addedDistributor.phone}</div>
+              <div><strong>Password:</strong> <span className="font-mono bg-gray-100 px-2 py-1 rounded">{addedDistributor.password}</span></div>
+              <Button
+                type="button"
+                className="mt-4 w-full bg-gradient-to-r from-electric-purple to-electric-blue text-white"
+                onClick={() => {
+                  const text = `Name: ${addedDistributor.name}\nUsername: ${addedDistributor.username}\nEmail: ${addedDistributor.email}\nPhone: ${addedDistributor.phone}\nPassword: ${addedDistributor.password}`;
+                  navigator.clipboard.writeText(text);
+                }}
+              >
+                Copy All to Clipboard
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="mt-2 w-full"
+                onClick={() => setSuccessDialogOpen(false)}
+              >
+                Close
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   )
