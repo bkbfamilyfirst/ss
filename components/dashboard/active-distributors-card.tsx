@@ -121,7 +121,7 @@ export function ActiveDistributorsCard() {
                     </Avatar>
                     <div>
                       <div className="font-medium text-sm">{distributor.name}</div>
-                      <div className="text-xs text-muted-foreground">{distributor.location}</div>
+                      <div className="text-xs text-muted-foreground">{distributor.address}</div>
                     </div>
                   </div>
                   <div className="flex flex-col items-end gap-1">
@@ -136,7 +136,7 @@ export function ActiveDistributorsCard() {
                       {distributor.status.charAt(0).toUpperCase() + distributor.status.slice(1)}
                     </Badge>
                     <div className="text-xs text-muted-foreground">
-                      {distributor.usedKeys}/{distributor.assignedKeys} keys
+                      {distributor.transferredKeys}/{distributor.receivedKeys} keys
                     </div>
                   </div>
                 </div>

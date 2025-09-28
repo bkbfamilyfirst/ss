@@ -40,22 +40,36 @@ export function KeyHistoryCard() {
         } else if (period === "quarter") {
           const quarterAgo = new Date()
           quarterAgo.setMonth(now.getMonth() - 3)
-          startDate = quarterAgo.toISOString().split('T')[0]        }        // For the API call, let's not filter by type initially and handle filtering on the client side
-        // This ensures we get all transactions and can properly categorize them
+          startDate = quarterAgo.toISOString().split('T')[0]
+        }
+        
+        // Always fetch all logs, then filter by direction on the frontend
         const response = await getSsKeyTransferLogs(
-          page,
-          pageSize,
+          1, // always fetch from first page
+          1000, // fetch a large number to cover all possible logs (adjust as needed)
           startDate,
           undefined, // endDate
           undefined, // status
-          undefined, // type - let's get all types and filter client-side          undefined  // search
+          undefined, // type
+          undefined  // search
         )
-        
-        setKeyHistory(response.logs)
-        setTotalRecords(response.total)
+
+        let filteredLogs = response.logs;
+        if (tab === 'sent') {
+          filteredLogs = filteredLogs.filter((log) => log.direction === 'Sent');
+        } else if (tab === 'received') {
+          filteredLogs = filteredLogs.filter((log) => log.direction === 'Received');
+        }
+
+        // Paginate after filtering
+        const total = filteredLogs.length;
+        const paginatedLogs = filteredLogs.slice((page - 1) * pageSize, page * pageSize);
+        setKeyHistory(paginatedLogs);
+        setTotalRecords(total);
       } catch (err) {
         console.error('Error fetching key history:', err)
-        setError('Failed to load key history')      } finally {
+        setError('Failed to load key history')
+      } finally {
         setLoading(false)
       }
     }
@@ -63,38 +77,13 @@ export function KeyHistoryCard() {
     fetchKeyHistory()
   }, [period, tab, page, pageSize])
 
+  // Simple function to determine display type using the direction field from the backend
   const getLogType = (log: KeyTransferLog): "sent" | "received" => {
-    // For a State Supervisor:
-    // - "received" means keys came TO the SS (SS is the recipient)
-    // - "sent" means keys went FROM the SS (SS is the sender)
-    
-    // If we have role information, use that to determine perspective
-    if (log.to?.role === "SS" || log.to?.role === "state_supervisor") {
-      return "received";
-    } else if (log.from?.role === "SS" || log.from?.role === "state_supervisor") {
-      return "sent";
-    }
-    
-    // Fallback to type field if role information is not available
-    return log.type === "transfer_out" ? "sent" : "received";
-  };
+    return (log.direction?.toLowerCase() || "received") as "sent" | "received";
+  }
 
-  // Filter data based on current tab
-  const getFilteredHistory = () => {
-    if (tab === "all") {
-      return keyHistory;
-    } else if (tab === "received") {
-      return keyHistory.filter(log => getLogType(log) === "received");
-    } else if (tab === "sent") {
-      return keyHistory.filter(log => getLogType(log) === "sent");
-    }    return keyHistory;
-  };
-
-  const filteredHistory = getFilteredHistory();
-  
-  // Calculate total pages based on filtered data
-  const filteredTotal = filteredHistory.length;
-  const totalPages = Math.ceil(filteredTotal / pageSize);
+  // No need for client-side filtering as API now handles it
+  const totalPages = Math.max(1, Math.ceil(totalRecords / pageSize));
   
   // Reset page if current page is beyond available pages
   useEffect(() => {
@@ -102,18 +91,14 @@ export function KeyHistoryCard() {
       setPage(1);
     }
   }, [page, totalPages]);
-  
-  // For display pagination, we need to slice the filtered data
-  const startIndex = (page - 1) * pageSize;
-  const endIndex = startIndex + pageSize;
-  const paginatedHistory = filteredHistory.slice(startIndex, endIndex);
 
   const handleTabChange = (val: string) => {
     setTab(val)
     setPage(1)
   }
 
-  const handlePeriodChange = (val: string) => {    setPeriod(val)
+  const handlePeriodChange = (val: string) => {
+    setPeriod(val)
     setPage(1)
   }
 
@@ -177,13 +162,15 @@ export function KeyHistoryCard() {
                   <AlertCircle className="h-8 w-8 text-destructive mx-auto mb-2" />
                   <p className="text-muted-foreground">{error}</p>
                 </div>
-              ) : paginatedHistory.length === 0 ? (
+              ) : keyHistory.length === 0 ? (
                 <div className="text-center py-8">
                   <p className="text-muted-foreground">No transfer history found</p>
                 </div>
               ) : (
-                <>                  {/* Mobile Card Layout */}                  <div className="block md:hidden space-y-3">
-                    {paginatedHistory.map((item, index) => {
+                <>
+                  {/* Mobile Card Layout */}
+                  <div className="block md:hidden space-y-3">
+                    {keyHistory.map((item, index) => {
                       const logType = getLogType(item)
                       return (
                         <div key={index} className="p-4 rounded-lg border bg-white dark:bg-gray-800 shadow-sm">
@@ -216,6 +203,12 @@ export function KeyHistoryCard() {
                                 <span className="text-sm truncate max-w-[150px]">{item.to?.name || "N/A"}</span>
                               </div>
                             )}
+                            {logType === "received" && (
+                              <div className="flex justify-between items-center">
+                                <span className="text-sm text-muted-foreground">From:</span>
+                                <span className="text-sm truncate max-w-[150px]">{item.from?.name || "N/A"}</span>
+                              </div>
+                            )}
                           </div>
                         </div>
                       )
@@ -231,10 +224,13 @@ export function KeyHistoryCard() {
                             <th className="px-4 py-3 text-left font-medium">Date</th>
                             <th className="px-4 py-3 text-left font-medium">Type</th>
                             <th className="px-4 py-3 text-left font-medium">Quantity</th>
-                            {tabKey !== "received" && <th className="px-4 py-3 text-left font-medium">To</th>}                          </tr>
+                            <th className="px-4 py-3 text-left font-medium">From</th>
+                            <th className="px-4 py-3 text-left font-medium">To</th>
+                            <th className="px-4 py-3 text-left font-medium">Status</th>
+                          </tr>
                         </thead>
                         <tbody>
-                          {paginatedHistory.map((item, index) => {
+                          {keyHistory.map((item, index) => {
                             const logType = getLogType(item)
                             return (
                               <tr key={index} className="border-t hover:bg-muted/30">
@@ -255,7 +251,9 @@ export function KeyHistoryCard() {
                                   </div>
                                 </td>
                                 <td className="px-4 py-3 font-medium">{item.count.toLocaleString()}</td>
-                                {tabKey !== "received" && <td className="px-4 py-3">{item.to?.name || "N/A"}</td>}
+                                <td className="px-4 py-3">{item.from?.name || "N/A"}</td>
+                                <td className="px-4 py-3">{item.to?.name || "N/A"}</td>
+                                <td className="px-4 py-3">{item.status}</td>
                               </tr>
                             )
                           })}
@@ -275,12 +273,14 @@ export function KeyHistoryCard() {
                       >
                         <ChevronLeft className="h-4 w-4" />
                         Prev
-                      </Button>                      <span>
-                        Page {page} of {totalPages} ({filteredTotal} total)
+                      </Button>
+                      <span>
+                        Page {page} of {totalPages} ({totalRecords} total)
                       </span>
                       <Button
                         size="sm"
-                        variant="ghost"                        disabled={page === totalPages || totalPages === 0}
+                        variant="ghost"
+                        disabled={page === totalPages || totalPages === 0}
                         onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                       >
                         Next

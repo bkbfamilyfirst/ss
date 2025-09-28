@@ -22,10 +22,10 @@ export interface StateSupervisor {
   username: string
   password: string
   phone: string
-  location: string
+  address: string
   status: "active" | "inactive"
-  assignedKeys: number
-  usedKeys: number
+  receivedKeys: number
+  transferredKeys: number
   lastActive?: string
   createdAt: string
   updatedAt?: string
@@ -66,10 +66,10 @@ export function ManageSSPage() {
         username: dist.username || "", // Add username property, fallback to empty string if missing
         password: dist.password || "", // Use password from frontend state if available
         phone: dist.phone,
-        location: dist.location,
+        address: dist.address,
         status: dist.status as "active" | "inactive",
-        assignedKeys: dist.assignedKeys,
-        usedKeys: dist.usedKeys,
+        receivedKeys: dist.receivedKeys,
+        transferredKeys: dist.transferredKeys,
         lastActive: "Recently", // API doesn't provide this, using placeholder
         createdAt: dist.createdAt || new Date().toISOString(),
         updatedAt: dist.updatedAt,
@@ -96,7 +96,7 @@ export function ManageSSPage() {
     const matchesSearch =
       ss.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       ss.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      ss.location.toLowerCase().includes(searchTerm.toLowerCase())
+      ss.address.toLowerCase().includes(searchTerm.toLowerCase())
 
     const matchesStatus = statusFilter === "all" || ss.status === statusFilter
 
@@ -111,9 +111,9 @@ export function ManageSSPage() {
         username: newSS.username,
         email: newSS.email,
         phone: newSS.phone,
-        location: newSS.location,
+        address: newSS.address,
         status: newSS.status,
-        assignedKeys: newSS.assignedKeys,
+        receivedKeys: newSS.receivedKeys,
         password: newSS.password
       })
       if (response && response.distributor && response.password) {
@@ -124,10 +124,10 @@ export function ManageSSPage() {
           email: response.distributor.email,
           phone: response.distributor.phone,
           password: response.password,
-          location: response.distributor.location || "",
+          address: response.distributor.address || "",
           status: response.distributor.status || "active",
-          assignedKeys: response.distributor.assignedKeys || 0,
-          usedKeys: response.distributor.usedKeys || 0,
+          receivedKeys: response.distributor.receivedKeys || 0,
+          transferredKeys: response.distributor.transferredKeys || 0,
           lastActive: "Recently",
           updatedAt: response.distributor.updatedAt,
         });
@@ -152,9 +152,9 @@ export function ManageSSPage() {
         name: updatedSS.name,
         email: updatedSS.email,
         phone: updatedSS.phone,
-        location: updatedSS.location,
+        address: updatedSS.address,
         status: updatedSS.status,
-        assignedKeys: updatedSS.assignedKeys
+        receivedKeys: updatedSS.receivedKeys
       })
       
       toast.success('Distributor updated successfully')
@@ -276,7 +276,7 @@ export function ManageSSPage() {
             </div>
             <div className="text-center p-4 rounded-lg bg-white/10 backdrop-blur-sm">
               <div className="text-2xl font-bold text-white">
-                {ssData.reduce((sum, ss) => sum + ss.keysAllocated, 0).toLocaleString()}
+                {(ssData.reduce((sum, ss) => sum + ss.keysAllocated, 0) ?? 0).toLocaleString()}
               </div>
               <div className="text-sm text-white/80">Total Keys</div>
             </div>
@@ -326,7 +326,7 @@ export function ManageSSPage() {
                 <span className="text-sm font-extrabold text-electric-yellow">Total Keys</span>
               </div>
               <span className="text-2xl font-extrabold text-electric-yellow">
-                {stats.totalKeys.toLocaleString()}
+                {(stats.totalKeys ?? 0).toLocaleString()}
               </span>
             </div>
 

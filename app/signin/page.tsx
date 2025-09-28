@@ -16,7 +16,7 @@ export default function SignInPage() {
   const router = useRouter()
   const { login } = useAuth()
   const [formData, setFormData] = useState({
-    email: "",
+    identifier: "",
     password: "",
   })
   const [loading, setLoading] = useState(false)
@@ -35,22 +35,22 @@ export default function SignInPage() {
     e.preventDefault()
     
     // Basic validation
-    if (!formData.email.trim() || !formData.password.trim()) {
+    if (!formData.identifier.trim() || !formData.password.trim()) {
       setError("Please fill in all fields")
       return
     }
 
-    // Only validate email format if input looks like an email
-    if (formData.email.includes("@") && !/\S+@\S+\.\S+/.test(formData.email)) {
+    // Only validate identifier format if input looks like an email
+    if (formData.identifier.includes("@") && !/\S+@\S+\.\S+/.test(formData.identifier)) {
       setError("Please enter a valid email address")
       return
     }
     try {
       setLoading(true)
       setError(null)
-      
-      const response = await apiLogin(formData.email, formData.password)
-      
+
+      const response = await apiLogin(formData.identifier, formData.password)
+
       // Update auth context with user data and token
       if (response.user && response.accessToken) {
         login(response.user, response.accessToken)
@@ -116,7 +116,6 @@ export default function SignInPage() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Email Field */}
               <div className="space-y-2">
                 <Label htmlFor="identifier" className="text-sm font-medium">
                   Email / Username / Phone
@@ -124,8 +123,8 @@ export default function SignInPage() {
                 <Input
                   id="identifier"
                   type="text"
-                  value={formData.email}
-                  onChange={(e) => handleInputChange("email", e.target.value)}
+                  value={formData.identifier}
+                  onChange={(e) => handleInputChange("identifier", e.target.value)}
                   placeholder="Enter email, username, or phone"
                   className="border-electric-purple/30 focus:border-electric-purple focus:ring-electric-purple/20"
                   disabled={loading}

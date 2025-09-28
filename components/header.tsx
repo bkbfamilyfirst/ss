@@ -4,6 +4,8 @@ import { useState } from "react"
 import Link from "next/link"
 import { Search, Shield, Bell, X } from "lucide-react"
 import { ModeToggle } from "@/components/mode-toggle"
+import { logout } from "@/lib/api"
+import { useRouter } from "next/navigation"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import {
@@ -22,12 +24,23 @@ import Logo from '../assets/icons/Logo.svg'
 export default function Header() {
   const [searchQuery, setSearchQuery] = useState("")
   const [showMobileSearch, setShowMobileSearch] = useState(false)
+  const router = useRouter();
 
   const handleMobileSearch = () => {
     setShowMobileSearch(!showMobileSearch)
     if (showMobileSearch) {
       setSearchQuery("")
     }
+  }
+
+  const handleSignOut = async () => {
+    try {
+      await logout();
+    } catch (e) {
+      // ignore error, just clear token and redirect
+    }
+    localStorage.removeItem("accessToken");
+    router.replace("/signin");
   }
 
   return (
@@ -111,18 +124,18 @@ export default function Header() {
                 <DropdownMenuContent className="w-48 sm:w-56 z-[100]" align="end" forceMount>
                   <DropdownMenuLabel className="font-normal">
                     <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium leading-none">Admin User</p>
+                      <p className="text-sm font-medium leading-none">SS User</p>
                       <p className="text-xs leading-none text-muted-foreground">admin@parentguard.com</p>
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild className="text-sm">
-                    <Link href="/profile">Admin Profile</Link>
+                    <Link href="/profile">SS Profile</Link>
                   </DropdownMenuItem>
                   {/* <DropdownMenuItem className="text-sm">System Settings</DropdownMenuItem> */}
                   {/* <DropdownMenuItem className="text-sm">Security Logs</DropdownMenuItem> */}
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem className="text-sm">Sign Out</DropdownMenuItem>
+                  <DropdownMenuItem className="text-sm" onClick={handleSignOut}>Sign Out</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>

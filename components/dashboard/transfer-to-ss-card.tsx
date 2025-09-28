@@ -14,7 +14,7 @@ import { toast } from "sonner"
 export function TransferToSSCard() {
   const [distributors, setDistributors] = useState<Distributor[]>([])
   const [selectedDistributor, setSelectedDistributor] = useState("")
-  const [keyCount, setKeyCount] = useState("100")
+  const [keyCount, setKeyCount] = useState("10")
   const [loading, setLoading] = useState(true)
   const [transferring, setTransferring] = useState(false)
 
@@ -49,9 +49,13 @@ export function TransferToSSCard() {
       toast.success('Keys transferred successfully')
       setKeyCount("100")
       setSelectedDistributor("")
-    } catch (err) {
+      // Auto refresh the page after successful transfer
+      setTimeout(() => {
+        window.location.reload()
+      }, 500)
+    } catch (err: any) {
       console.error('Error transferring keys:', err)
-      toast.error('Failed to transfer keys. Please try again.')
+      toast.error(err.response?.data?.message || 'Failed to transfer keys. Please try again.')
     } finally {
       setTransferring(false)
     }
@@ -87,14 +91,14 @@ export function TransferToSSCard() {
             <SelectContent>
               {distributors.map((distributor) => (
                 <SelectItem key={distributor._id} value={distributor._id}>
-                  {distributor.name} - {distributor.location}
+                  {distributor.name} - {distributor.address}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
           {selectedDistributorData && (
             <div className="text-xs text-muted-foreground">
-              Available: {(selectedDistributorData.assignedKeys - selectedDistributorData.usedKeys).toLocaleString()} keys
+              Available: {(selectedDistributorData.receivedKeys - selectedDistributorData.transferredKeys).toLocaleString()} keys
             </div>
           )}
         </div>

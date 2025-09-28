@@ -53,10 +53,10 @@ export function TransferredBalanceKeysCard() {
     )
   }
 
-  const allocatedKeys = data?.allocated || 0
+  const transferredKeys = data?.transferredKeys || 0
   const balanceKeys = data?.balanceKeys || 0
-  const totalKeys = allocatedKeys + balanceKeys
-  const allocationPercentage = totalKeys > 0 ? Math.round((allocatedKeys / totalKeys) * 100) : 0
+  const totalKeys = transferredKeys + balanceKeys
+  const allocationPercentage = totalKeys > 0 ? Math.round((transferredKeys / totalKeys) * 100) : 0
 
   return (
     <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-electric-cyan/10 to-electric-green/10 hover:shadow-xl transition-all duration-300 hover:scale-105">
@@ -71,7 +71,7 @@ export function TransferredBalanceKeysCard() {
       </CardHeader>
       <CardContent>
         <div className="text-3xl font-bold bg-gradient-to-r from-electric-cyan to-electric-green bg-clip-text text-transparent">
-          {allocatedKeys.toLocaleString()}
+          {transferredKeys.toLocaleString()}
         </div>
         <div className="mt-4 space-y-3">
           <div className="flex items-center justify-between text-sm">
@@ -79,13 +79,13 @@ export function TransferredBalanceKeysCard() {
               <ArrowUpDown className="h-4 w-4 text-electric-blue" />
               <span>Allocation Status</span>
             </div>
-            <span className="font-medium text-electric-cyan">{data?.allocationStatus || 0}%</span>
+            <span className="font-medium text-electric-cyan">{data?.transferStatus || 0}%</span>
           </div>
           <Progress value={allocationPercentage} className="h-2" />
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <div className="flex items-center gap-1">
               <ArrowUpDown className="h-3 w-3 text-electric-cyan" />
-              <span>Transferred: {allocatedKeys.toLocaleString()}</span>
+              <span>Transferred: {transferredKeys.toLocaleString()}</span>
             </div>
             <div className="flex items-center gap-1">
               <Wallet className="h-3 w-3 text-electric-green" />

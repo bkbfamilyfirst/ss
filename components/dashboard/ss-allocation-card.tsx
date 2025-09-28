@@ -53,8 +53,8 @@ export function SSAllocationCard() {
     )
   }
 
-  const totalAllocated = distributors.reduce((sum, d) => sum + d.assignedKeys, 0)
-  const totalUsed = distributors.reduce((sum, d) => sum + d.usedKeys, 0)
+  const totalAllocated = distributors.reduce((sum, d) => sum + d.receivedKeys, 0)
+  const totalUsed = distributors.reduce((sum, d) => sum + d.transferredKeys, 0)
 
   return (
     <Card className="border-0 bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-800 hover:shadow-xl transition-all duration-300">
@@ -98,8 +98,8 @@ export function SSAllocationCard() {
               </div>
             ) : (
               distributors.map((distributor, index) => {
-                const usagePercentage = distributor.assignedKeys > 0 
-                  ? Math.round((distributor.usedKeys / distributor.assignedKeys) * 100) 
+                const usagePercentage = distributor.receivedKeys > 0 
+                  ? Math.round((distributor.transferredKeys / distributor.receivedKeys) * 100) 
                   : 0
                 let progressColor = "bg-electric-green"
 
@@ -117,13 +117,13 @@ export function SSAllocationCard() {
                     <div className="flex items-center justify-between mb-2">
                       <div>
                         <div className="font-medium text-sm">{distributor.name}</div>
-                        <div className="text-xs text-muted-foreground">{distributor.location}</div>
+                        <div className="text-xs text-muted-foreground">{distributor.address}</div>
                       </div>
                     </div>
                     <div className="space-y-1">
                       <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>Used: {distributor.usedKeys.toLocaleString()}</span>
-                        <span>Allocated: {distributor.assignedKeys.toLocaleString()}</span>
+                        <span>Used: {distributor.transferredKeys.toLocaleString()}</span>
+                        <span>Allocated: {distributor.receivedKeys.toLocaleString()}</span>
                       </div>
                       <Progress value={usagePercentage} className={`h-2 ${progressColor}`} />
                     </div>

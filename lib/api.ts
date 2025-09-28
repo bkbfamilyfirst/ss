@@ -1,5 +1,5 @@
 import axios from 'axios';
-
+import { toast } from 'sonner'
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.familyfirst.com';
 
 const api = axios.create({
@@ -73,8 +73,8 @@ export interface SsDashboardSummary {
     } | null;
   };
   balanceKeys: number;
-  allocationStatus: number;
-  allocated: number;
+  transferStatus: number;
+  transferredKeys: number;
   available: number;
   retailerCount: {
     totalActiveRetailers: number;
@@ -101,10 +101,10 @@ export interface Distributor {
   email: string;
   phone: string;
   role: string;
-  assignedKeys: number;
-  usedKeys: number;
+  receivedKeys: number;
+  transferredKeys: number;
   createdBy: string;
-  location: string;
+  address: string;
   status: string;
   createdAt?: string;
   updatedAt?: string;
@@ -120,20 +120,13 @@ export interface DistributorStats {
 export interface KeyTransferLog {
   transferId: string;
   timestamp: string;
-  from: {
-    id: string;
-    name: string;
-    role: string;
-  } | null;
-  to: {
-    id: string;
-    name: string;
-    role: string;
-  } | null;
+  from: { id: string; name: string; role: string } | null;
+  to: { id: string; name: string; role: string } | null;
   count: number;
   status: string;
   type: string;
-  notes?: string;
+  notes: string;
+  direction: 'Sent' | 'Received' | null; // This is the key field from backend
 }
 
 export interface SsProfile {
@@ -142,13 +135,13 @@ export interface SsProfile {
   email: string;
   phone: string;
   role: string;
-  assignedKeys: number;
-  usedKeys: number;
+  receivedKeys: number;
+  transferredKeys: number;
   createdAt: string;
   updatedAt: string;
   lastLogin?: string;
   status: string;
-  location?: string;
+  address?: string;
 }
 
 // SS Dashboard API Functions
@@ -168,10 +161,10 @@ export const getSsDashboardSummary = async (): Promise<SsDashboardSummary> => {
 export const getDistributorList = async (): Promise<Distributor[]> => {
   try {
     const response = await api.get('/ss/distributors');
-    // Map backend address to frontend location
+    // Map backend address to frontend address
     const distributors = response.data.map((distributor: any) => ({
       ...distributor,
-      location: distributor.address || distributor.location,
+      address: distributor.address || distributor.address,
     }));
     return distributors;
   } catch (error) {
@@ -226,21 +219,21 @@ export const addDistributor = async (distributorData: {
   username: string;
   email: string;
   phone: string;
-  location: string;
+  address: string;
   status?: string;
-  assignedKeys?: number;
+  receivedKeys?: number;
   password: string;
 }) => {
   try {
-    // Backend expects 'location' and maps it to 'address' internally
+    // Backend expects 'address' and maps it to 'address' internally
     const backendData = {
       name: distributorData.name,
       username: distributorData.username,
       email: distributorData.email,
       phone: distributorData.phone,
-      location: distributorData.location, // Backend will map this to address
+      address: distributorData.address, // Backend will map this to address
       status: distributorData.status || 'active',
-      assignedKeys: distributorData.assignedKeys || 0,
+      receivedKeys: distributorData.receivedKeys || 0,
       password: distributorData.password
     };
     const response = await api.post('/ss/distributors', backendData);
@@ -266,7 +259,7 @@ export const addDistributor = async (distributorData: {
 // PUT /ss/distributors/:id
 export const updateDistributor = async (distributorId: string, updatedData: Partial<Distributor>) => {
   try {
-    // Backend expects 'location' and maps it to 'address' internally
+    // Backend expects 'address' and maps it to 'address' internally
     const backendData = { ...updatedData };
     
     const response = await api.put(`/ss/distributors/${distributorId}`, backendData);
@@ -310,7 +303,7 @@ export const transferKeysToDb = async (dbId: string, keysToTransfer: number) => 
 export const getSsProfile = async (): Promise<SsProfile> => {
   try {
     const response = await api.get('/ss/profile');
-    // Backend now maps address to location, so we can use it directly
+    // Backend now maps address to address, so we can use it directly
     return response.data;
   } catch (error) {
     console.error('Error fetching SS profile:', error);
@@ -321,7 +314,7 @@ export const getSsProfile = async (): Promise<SsProfile> => {
 // PUT /ss/profile
 export const updateSsProfile = async (updatedData: Partial<SsProfile>) => {
   try {
-    // Backend expects location and maps it to address internally
+    // Backend expects address and maps it to address internally
     const backendData = { ...updatedData };
     
     const response = await api.put('/ss/profile', backendData);
@@ -335,16 +328,19 @@ export const updateSsProfile = async (updatedData: Partial<SsProfile>) => {
 // Authentication API Functions
 
 // POST /auth/login
-export const login = async (email: string, password: string) => {
+export const login = async (identifier: string, password: string) => {
   try {
     // Send identifier (email, username, or phone) and password
-    const response = await api.post('/auth/login', { identifier: email, password });
+    const response = await api.post('/auth/login', { identifier, password, role: 'ss' });
     if (response.data.accessToken) {
       localStorage.setItem('accessToken', response.data.accessToken);
     }
     return response.data;
   } catch (error) {
     console.error('Error during login:', error);
+    const errorMessage =
+      (error as any)?.response?.data?.message || "Login failed. Please check your credentials.";
+    toast(errorMessage);
     throw error;
   }
 };
@@ -368,6 +364,20 @@ export const getCurrentUser = async () => {
     return response.data;
   } catch (error) {
     console.error('Error fetching current user:', error);
+    throw error;
+  }
+};
+
+// POST /ss/distributors/:id/change-password
+export const changeDistributorPassword = async (distributorId: string, newPassword: string) => {
+  try {
+    const response = await api.post(`/ss/distributors/${distributorId}/change-password`, { newPassword });
+    return response.data;
+  } catch (error: any) {
+    console.error('Error changing distributor password:', error);
+    if (error.response) {
+      console.error('Change password response:', error.response.data);
+    }
     throw error;
   }
 };

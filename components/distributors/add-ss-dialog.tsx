@@ -24,10 +24,10 @@ export function AddSSDialog({ open, onOpenChangeAction, onAddAction }: AddSSDial
     username: "",
     email: "",
     phone: "",
-    location: "",
+    address: "",
     status: "active" as "active" | "inactive",
-    assignedKeys: 0,
-    usedKeys: 0,
+    receivedKeys: 0,
+    transferredKeys: 0,
     password: "",
   })
 
@@ -59,14 +59,14 @@ export function AddSSDialog({ open, onOpenChangeAction, onAddAction }: AddSSDial
     if (!formData.phone.trim()) {
       newErrors.phone = "Phone is required"
     }
-    if (!formData.location.trim()) {
-      newErrors.location = "Location is required"
+    if (!formData.address.trim()) {
+      newErrors.address = "address is required"
     }
     if (!formData.password.trim()) {
       newErrors.password = "Password is required"
     }
-    if (formData.assignedKeys < 0) {
-      newErrors.assignedKeys = "Keys allocated must be 0 or greater"
+    if (formData.receivedKeys < 0) {
+      newErrors.receivedKeys = "Keys allocated must be 0 or greater"
     }
 
     setErrors(newErrors)
@@ -83,9 +83,11 @@ export function AddSSDialog({ open, onOpenChangeAction, onAddAction }: AddSSDial
     onOpenChangeAction(false)
     try {
       // Call the API and get the response
+      const { address, ...rest } = formData;
       const response = await onAddAction({
         id: crypto.randomUUID(),
-        ...formData,
+        ...rest,
+        address: address,
         lastActive: "Just now",
         updatedAt: new Date().toISOString(),
       })
@@ -99,8 +101,6 @@ export function AddSSDialog({ open, onOpenChangeAction, onAddAction }: AddSSDial
           password: response.password,
         })
         setSuccessDialogOpen(true)
-      } else {
-        toast.error("Failed to add distributor. Please try again.")
       }
       // Reset form
       setFormData({
@@ -108,15 +108,19 @@ export function AddSSDialog({ open, onOpenChangeAction, onAddAction }: AddSSDial
         username: "",
         email: "",
         phone: "",
-        location: "",
+        address: "",
         status: "active",
-        assignedKeys: 0,
-        usedKeys: 0,
+        receivedKeys: 0,
+        transferredKeys: 0,
         password: "",
       })
       setErrors({})
-    } catch (error) {
-      toast.error("Failed to add distributor. Please try again.")
+    } catch (error: any) {
+      // Try to show backend error message if available
+      const status = error?.response?.status;
+      const message = error?.response?.data?.message;
+      if (message) toast.error(message);
+      
       console.error('Error adding distributor:', error)
     } finally {
       setLoading(false)
@@ -196,15 +200,15 @@ export function AddSSDialog({ open, onOpenChangeAction, onAddAction }: AddSSDial
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="location">Location *</Label>
+                <Label htmlFor="address">address *</Label>
                 <Input
-                  id="location"
-                  value={formData.location}
-                  onChange={(e) => handleInputChange("location", e.target.value)}
-                  placeholder="Enter location or region"
-                  className={errors.location ? "border-red-500" : ""}
+                  id="address"
+                  value={formData.address}
+                  onChange={(e) => handleInputChange("address", e.target.value)}
+                  placeholder="Enter address or region"
+                  className={errors.address ? "border-red-500" : ""}
                 />
-                {errors.location && <p className="text-sm text-red-500">{errors.location}</p>}
+                {errors.address && <p className="text-sm text-red-500">{errors.address}</p>}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="status">Initial Status</Label>              <Select
@@ -225,23 +229,23 @@ export function AddSSDialog({ open, onOpenChangeAction, onAddAction }: AddSSDial
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               
               <div className="space-y-2">
-                <Label htmlFor="assignedKeys">Initial Keys Allocation</Label>
+                <Label htmlFor="receivedKeys">Initial Keys Allocation</Label>
                 <Input
-                  id="assignedKeys"
+                  id="receivedKeys"
                   type="number"
                   min="0"
-                  value={formData.assignedKeys}
-                  onChange={(e) => handleInputChange("assignedKeys", Number.parseInt(e.target.value) || 0)}
+                  value={formData.receivedKeys}
+                  onChange={(e) => handleInputChange("receivedKeys", Number.parseInt(e.target.value) || 0)}
                   placeholder="0"
-                  className={errors.assignedKeys ? "border-red-500" : ""}
+                  className={errors.receivedKeys ? "border-red-500" : ""}
                 />
-                {errors.assignedKeys && <p className="text-sm text-red-500">{errors.assignedKeys}</p>}
+                {errors.receivedKeys && <p className="text-sm text-red-500">{errors.receivedKeys}</p>}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password">Password *</Label>
                 <Input
                   id="password"
-                  type="password"
+                  type="text"
                   value={formData.password}
                   onChange={(e) => handleInputChange("password", e.target.value)}
                   placeholder="Enter password"
@@ -284,7 +288,7 @@ export function AddSSDialog({ open, onOpenChangeAction, onAddAction }: AddSSDial
               <div><strong>Username:</strong> {addedDistributor.username}</div>
               <div><strong>Email:</strong> {addedDistributor.email}</div>
               <div><strong>Phone:</strong> {addedDistributor.phone}</div>
-              <div><strong>Password:</strong> <span className="font-mono bg-gray-100 px-2 py-1 rounded">{addedDistributor.password}</span></div>
+              <div><strong>Password:</strong> <span className="font-mono px-2 py-1 rounded">{addedDistributor.password}</span></div>
               <Button
                 type="button"
                 className="mt-4 w-full bg-gradient-to-r from-electric-purple to-electric-blue text-white"

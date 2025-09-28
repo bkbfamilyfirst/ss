@@ -20,7 +20,7 @@ export function PersonalInformation() {
         name: "",
         email: "",
         phone: "",
-        location: "",
+        address: "",
     })
 
     useEffect(() => {
@@ -34,7 +34,7 @@ export function PersonalInformation() {
                     name: profileData.name || "",
                     email: profileData.email || "",
                     phone: profileData.phone || "",
-                    location: profileData.location || "",
+                    address: profileData.address || "",
                 })
             } catch (err) {
                 console.error('Error fetching profile:', err)
@@ -79,7 +79,7 @@ export function PersonalInformation() {
                 name: profile.name || "",
                 email: profile.email || "",
                 phone: profile.phone || "",
-                location: profile.location || "",
+                address: profile.address || "",
             })
         }
         setIsEditing(false)
@@ -213,14 +213,14 @@ export function PersonalInformation() {
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="location" className="text-sm font-medium flex items-center gap-2">
+                        <Label htmlFor="address" className="text-sm font-medium flex items-center gap-2">
                             <MapPin className="h-4 w-4 text-electric-orange" />
-                            Location
+                            address
                         </Label>
                         <Input
-                            id="location"
-                            value={formData.location}
-                            onChange={(e) => handleInputChange("location", e.target.value)}
+                            id="address"
+                            value={formData.address}
+                            onChange={(e) => handleInputChange("address", e.target.value)}
                             disabled={!isEditing}
                             className="border-electric-orange/30 focus:border-electric-orange focus:ring-electric-orange/20"
                         />
@@ -242,11 +242,11 @@ export function PersonalInformation() {
                             </div>
                             <div className="p-3 rounded-lg bg-gradient-to-r from-electric-orange/10 to-electric-pink/10">
                                 <div className="text-xs text-gray-500 mb-1">Assigned Keys</div>
-                                <div className="text-sm font-medium">{(profile.assignedKeys || 0).toLocaleString()}</div>
+                                <div className="text-sm font-medium">{(profile.receivedKeys || 0).toLocaleString()}</div>
                             </div>
                             <div className="p-3 rounded-lg bg-gradient-to-r from-electric-blue/10 to-electric-purple/10">
                                 <div className="text-xs text-gray-500 mb-1">Used Keys</div>
-                                <div className="text-sm font-medium">{(profile.usedKeys || 0).toLocaleString()}</div>
+                                <div className="text-sm font-medium">{(profile.transferredKeys || 0).toLocaleString()}</div>
                             </div>
                         </div>
                     </div>

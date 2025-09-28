@@ -22,10 +22,10 @@ export function EditSSDialog({ open, onOpenChange, ss, onEdit }: EditSSDialogPro
     name: "",
     email: "",
     phone: "",
-    location: "",
+    address: "",
     status: "active" as "active" | "inactive",
-    assignedKeys: 0,
-    usedKeys: 0,
+    receivedKeys: 0,
+    transferredKeys: 0,
   })
 
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -36,10 +36,10 @@ export function EditSSDialog({ open, onOpenChange, ss, onEdit }: EditSSDialogPro
         name: ss.name || "",
         email: ss.email || "",
         phone: ss.phone || "",
-        location: ss.location || "",
+        address: ss.address || "",
         status: ss.status || "active",
-        assignedKeys: ss.assignedKeys || 0,
-        usedKeys: ss.usedKeys || 0,
+        receivedKeys: ss.receivedKeys || 0,
+        transferredKeys: ss.transferredKeys || 0,
       })
     }
   }, [ss])
@@ -61,20 +61,20 @@ export function EditSSDialog({ open, onOpenChange, ss, onEdit }: EditSSDialogPro
       newErrors.phone = "Phone is required"
     }
 
-    if (!formData.location?.trim()) {
-      newErrors.location = "Location is required"
+    if (!formData.address?.trim()) {
+      newErrors.address = "address is required"
     }
 
-    if (formData.assignedKeys < 0) {
-      newErrors.assignedKeys = "Keys allocated must be 0 or greater"
+    if (formData.receivedKeys < 0) {
+      newErrors.receivedKeys = "Keys allocated must be 0 or greater"
     }
 
-    if (formData.usedKeys < 0) {
-      newErrors.usedKeys = "Keys used must be 0 or greater"
+    if (formData.transferredKeys < 0) {
+      newErrors.transferredKeys = "Keys used must be 0 or greater"
     }
 
-    if (formData.usedKeys > formData.assignedKeys) {
-      newErrors.usedKeys = "Keys used cannot exceed keys allocated"
+    if (formData.transferredKeys > formData.receivedKeys) {
+      newErrors.transferredKeys = "Keys used cannot exceed keys allocated"
     }
 
     setErrors(newErrors)
@@ -153,20 +153,15 @@ export function EditSSDialog({ open, onOpenChange, ss, onEdit }: EditSSDialogPro
               />
               {errors.phone && <p className="text-sm text-red-500">{errors.phone}</p>}
             </div>            <div className="space-y-2">
-              <Label htmlFor="edit-location">Location *</Label>
-              <Select value={formData.location} onValueChange={(value) => handleInputChange("location", value)}>
-                <SelectTrigger className={errors.location ? "border-red-500" : ""}>
-                  <SelectValue placeholder="Select location" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="North Region">North Region</SelectItem>
-                  <SelectItem value="South Region">South Region</SelectItem>
-                  <SelectItem value="East Region">East Region</SelectItem>
-                  <SelectItem value="West Region">West Region</SelectItem>
-                  <SelectItem value="Central Region">Central Region</SelectItem>
-                </SelectContent>
-              </Select>
-              {errors.location && <p className="text-sm text-red-500">{errors.location}</p>}
+              <Label htmlFor="edit-address">address *</Label>
+              <Input
+                id="edit-address"
+                value={formData.address}
+                onChange={e => handleInputChange("address", e.target.value)}
+                placeholder="Enter address or region"
+                className={errors.address ? "border-red-500" : ""}
+              />
+              {errors.address && <p className="text-sm text-red-500">{errors.address}</p>}
             </div>
           </div>
 

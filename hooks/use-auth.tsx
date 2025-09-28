@@ -9,9 +9,9 @@ interface User {
   email: string
   role: string
   phone?: string
-  location?: string
-  assignedKeys?: number
-  usedKeys?: number
+  address?: string
+  receivedKeys?: number
+  transferredKeys?: number
   status?: string
   createdAt?: string
   lastLogin?: string
