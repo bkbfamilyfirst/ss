@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Users, Plus, Search, UserCheck, UserX, KeyRound, AlertCircle, Loader2 } from "lucide-react"
 import { useState, useEffect, Key } from "react"
 import { toast } from "sonner"
+import { isAxiosError } from "axios"
 import { SSTable } from "./ss-table"
 import { AddSSDialog } from "./add-ss-dialog"
 import { EditSSDialog } from "./edit-ss-dialog"
@@ -136,9 +137,14 @@ export function ManageSSPage() {
       setIsAddDialogOpen(false)
       await fetchData(); // Refresh data
       return response
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Error adding distributor:', err)
-      toast.error('Failed to add distributor. Please try again.')
+      const status = isAxiosError(err) ? err.response?.status : undefined
+      const backendMessage = isAxiosError(err) ? err.response?.data?.message : undefined
+      // Only surface backend messages for expected 4xx validation/conflict errors;
+      // 5xx bodies may include raw internal error text and should stay generic.
+      const isClientError = typeof status === 'number' && status >= 400 && status < 500
+      toast.error((isClientError && backendMessage) || 'Failed to add distributor. Please try again.')
       return undefined
     } finally {
       setActionLoading(false)
