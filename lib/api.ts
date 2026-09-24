@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { isAxiosError } from 'axios';
 import { toast } from 'sonner'
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.familyfirst.com';
 
@@ -238,19 +238,16 @@ export const addDistributor = async (distributorData: {
     };
     const response = await api.post('/ss/distributors', backendData);
     return response.data;
-  } catch (error: any) {
-    console.error('Error adding distributor:', error);
-    console.error('Full error details:', {
-      message: error.message,
-      status: error.response?.status,
-      statusText: error.response?.statusText,
-      data: error.response?.data,
-      requestData: distributorData
-    });
-    if (error.response) {
-      console.error('Response data:', error.response.data);
-      console.error('Response status:', error.response.status);
-      console.error('Request data that was sent:', distributorData);
+  } catch (error: unknown) {
+    // Never log distributorData/backendData directly here - both contain the plaintext password.
+    if (isAxiosError(error)) {
+      console.error('Error adding distributor:', {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+      });
+    } else {
+      console.error('Error adding distributor:', error);
     }
     throw error;
   }
